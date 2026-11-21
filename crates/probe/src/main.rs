@@ -7,6 +7,9 @@ use konekode_edit::{
     expected_now, final_text, fulfil, goal_of, indent_below, indent_split, keys_of, known_keys,
     press, run, step,
 };
+use konekode_record::{
+    Clock, Entry, Event, Source, build, latest_of, ordered, read_counted, read_event,
+};
 use konekode_unit::{Part, Task, Text, flatten, path_of, plan_for, program_of, tasks_of};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
@@ -36,6 +39,34 @@ fn engine_view(unlocked: &BTreeSet<String>) -> Result<Value, String> {
         "pairs": encode(&engine.pairs(unlocked))?,
         "linePair": encode(&engine.line_pair(unlocked, "<"))?,
     }))
+}
+
+#[derive(Deserialize)]
+struct Call {
+    entry: Entry,
+    id: String,
+    kind: String,
+    now: i64,
+}
+
+fn track(args: &Value) -> Result<Value, String> {
+    let loaded = read_counted(&arg::<Vec<Value>>(args, "loaded")?).events;
+    let source = arg::<Source>(args, "source")?;
+    let mut clock = Clock::after(&loaded);
+    let made: Vec<Event> = arg::<Vec<Call>>(args, "calls")?
+        .iter()
+        .map(|call| {
+            build(
+                &source,
+                &mut clock,
+                &call.kind,
+                &call.entry,
+                call.now,
+                &call.id,
+            )
+        })
+        .collect();
+    encode(&made)
 }
 
 fn answer(op: &str, args: &Value) -> Result<Value, String> {
@@ -111,6 +142,11 @@ fn answer(op: &str, args: &Value) -> Result<Value, String> {
         )
         .map_err(|error| error.to_string())
         .and_then(|beats| encode(&beats)),
+        "readEvent" => encode(&read_event(&arg::<Value>(args, "value")?)),
+        "readCounted" => encode(&read_counted(&arg::<Vec<Value>>(args, "values")?)),
+        "ordered" => encode(&ordered(&arg::<Vec<Event>>(args, "events")?)),
+        "latestOf" => encode(&latest_of(&arg::<Vec<Event>>(args, "events")?)),
+        "track" => track(args),
         "tasksOf" => encode(&tasks_of(&arg::<Vec<Part>>(args, "parts")?)),
         "pathOf" => encode(&path_of(&arg::<Task>(args, "task")?)),
         "programOf" => encode(&program_of(

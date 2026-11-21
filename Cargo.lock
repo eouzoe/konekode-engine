@@ -38,7 +38,16 @@ version = "0.1.0"
 dependencies = [
  "konekode-complete",
  "konekode-edit",
+ "konekode-record",
  "konekode-unit",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "konekode-record"
+version = "0.1.0"
+dependencies = [
  "serde",
  "serde_json",
 ]
