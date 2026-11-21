@@ -1,0 +1,16 @@
+[package]
+name = "konekode-probe"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+konekode-complete = { workspace = true, features = ["serde"] }
+konekode-edit = { workspace = true, features = ["serde"] }
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

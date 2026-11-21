@@ -1,0 +1,17 @@
+[package]
+name = "konekode-edit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+konekode-complete.workspace = true
+konekode-text.workspace = true
+serde = { workspace = true, optional = true }
+
+[features]
+serde = ["dep:serde", "konekode-complete/serde"]
+
+[lints]
+workspace = true
