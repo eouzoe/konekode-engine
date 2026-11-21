@@ -25,6 +25,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "konekode-cli"
+version = "0.1.0"
+dependencies = [
+ "konekode-flow",
+ "konekode-record",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "konekode-complete"
 version = "0.1.0"
 dependencies = [
@@ -39,6 +49,18 @@ dependencies = [
  "konekode-complete",
  "konekode-text",
  "serde",
+]
+
+[[package]]
+name = "konekode-flow"
+version = "0.1.0"
+dependencies = [
+ "konekode-complete",
+ "konekode-learner",
+ "konekode-record",
+ "konekode-unit",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

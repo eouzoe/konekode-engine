@@ -11,6 +11,7 @@ repository = "https://github.com/eouzoe/konekode-engine"
 [workspace.dependencies]
 konekode-complete = { path = "crates/complete" }
 konekode-edit = { path = "crates/edit" }
+konekode-flow = { path = "crates/flow" }
 konekode-learner = { path = "crates/learner" }
 konekode-record = { path = "crates/record" }
 konekode-run = { path = "crates/run" }

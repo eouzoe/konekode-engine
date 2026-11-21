@@ -1,0 +1,20 @@
+[package]
+name = "konekode-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[[bin]]
+name = "konekode"
+path = "src/main.rs"
+
+[dependencies]
+konekode-flow.workspace = true
+konekode-record.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

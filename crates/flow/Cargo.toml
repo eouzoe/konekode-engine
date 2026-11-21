@@ -1,0 +1,17 @@
+[package]
+name = "konekode-flow"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+konekode-complete = { workspace = true, features = ["serde"] }
+konekode-learner = { workspace = true, features = ["serde"] }
+konekode-record.workspace = true
+konekode-unit = { workspace = true, features = ["serde"] }
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
