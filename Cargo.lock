@@ -39,6 +39,7 @@ dependencies = [
  "konekode-complete",
  "konekode-edit",
  "konekode-record",
+ "konekode-typing",
  "konekode-unit",
  "serde",
  "serde_json",
@@ -59,6 +60,14 @@ version = "0.1.0"
 [[package]]
 name = "konekode-text"
 version = "0.1.0"
+
+[[package]]
+name = "konekode-typing"
+version = "0.1.0"
+dependencies = [
+ "konekode-text",
+ "serde",
+]
 
 [[package]]
 name = "konekode-unit"
