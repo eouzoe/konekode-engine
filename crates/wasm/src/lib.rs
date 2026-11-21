@@ -28,6 +28,25 @@ impl Engine {
     pub fn state(&self) -> Result<String, JsError> {
         Ok(serde_json::to_string(&self.inner.state())?)
     }
+
+    #[must_use]
+    pub fn shows(&self, unit: &str, beat: &str) -> Vec<String> {
+        self.inner.shows(unit, beat)
+    }
+
+    #[must_use]
+    pub fn uses(&self, unit: &str, task: &str, step: f64) -> Vec<String> {
+        self.inner.uses(unit, task, step)
+    }
+}
+
+#[wasm_bindgen(js_name = keptKinds)]
+#[must_use]
+pub fn kept_kinds() -> Vec<String> {
+    konekode_learner::kept_kinds()
+        .into_iter()
+        .map(str::to_owned)
+        .collect()
 }
 
 #[wasm_bindgen(js_name = collectRows)]

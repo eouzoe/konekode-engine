@@ -1,4 +1,4 @@
-use konekode_learner::{Domains, Fold};
+use konekode_learner::{Domains, Fold, shown_by, used_by};
 use konekode_record::{Appended, Event, Log};
 use serde::{Deserialize, Serialize};
 
@@ -48,6 +48,16 @@ impl Engine {
     #[must_use]
     pub fn log(&self) -> &Log {
         &self.log
+    }
+
+    #[must_use]
+    pub fn shows(&self, unit: &str, beat: &str) -> Vec<String> {
+        shown_by(self.domains.get(unit), beat).unwrap_or_default()
+    }
+
+    #[must_use]
+    pub fn uses(&self, unit: &str, task: &str, step: f64) -> Vec<String> {
+        used_by(self.domains.get(unit), task, step).unwrap_or_default()
     }
 
     #[must_use]
