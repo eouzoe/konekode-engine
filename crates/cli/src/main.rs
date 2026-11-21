@@ -2,9 +2,10 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::process::ExitCode;
 
-use konekode_flow::{Content, Engine, Row, State, collect};
+use konekode_flow::{Content, Engine, Report, Row, State, collect};
 use konekode_record::{Event, read_events};
-use serde_json::{Value, json};
+use serde::Serialize;
+use serde_json::Value;
 
 const USAGE: &str = "konekode flow <content.json> <rows.json>
 konekode collect <rows.json>
@@ -35,20 +36,28 @@ fn encode(value: &impl serde::Serialize) -> Result<String, String> {
     serde_json::to_string(value).map_err(|error| error.to_string())
 }
 
+#[derive(Serialize)]
+struct Flowed<'a> {
+    actors: BTreeMap<&'a String, State>,
+    #[serde(rename = "catalogMatches")]
+    catalog_matches: bool,
+    content: &'a str,
+    report: &'a Report,
+}
+
 fn flow(content_path: &str, rows_path: &str) -> Result<String, String> {
     let content = content(content_path)?;
     let collected = collect(&rows(rows_path)?);
-    let states: BTreeMap<&String, State> = collected
-        .actors
-        .iter()
-        .map(|(actor, events)| (actor, Engine::new(&content, events).state()))
-        .collect();
-    encode(&json!({
-        "actors": states,
-        "catalogMatches": content.catalog_matches(),
-        "content": content.version,
-        "report": collected.report,
-    }))
+    encode(&Flowed {
+        actors: collected
+            .actors
+            .iter()
+            .map(|(actor, events)| (actor, Engine::new(&content, events).state()))
+            .collect(),
+        catalog_matches: content.catalog_matches(),
+        content: &content.version,
+        report: &collected.report,
+    })
 }
 
 fn run(args: &[String]) -> Result<String, String> {
