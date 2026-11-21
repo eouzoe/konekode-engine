@@ -17,48 +17,58 @@ pub fn components() -> Vec<String> {
     keys().into_iter().map(|item| item.id).collect()
 }
 
-fn component_for(key: &str) -> Option<String> {
-    keys()
-        .into_iter()
-        .find(|item| item.key == key)
-        .map(|item| item.id)
+struct Catalog {
+    by_key: BTreeMap<String, String>,
+    known: BTreeSet<String>,
 }
 
-fn used(tokens: &[String]) -> Vec<Vec<String>> {
-    expand(tokens)
-        .into_iter()
-        .map(|step| {
-            if step.kind != ExpectedKind::Command {
-                return Vec::new();
-            }
-            component_for(&step.key).into_iter().collect()
-        })
-        .collect()
-}
+impl Catalog {
+    fn new() -> Self {
+        let mut by_key = BTreeMap::new();
+        let mut known = BTreeSet::new();
+        for item in keys() {
+            known.insert(item.id.clone());
+            by_key.insert(item.key, item.id);
+        }
+        Self { by_key, known }
+    }
 
-fn shown_by_beat(beat: &Beat, known: &BTreeSet<String>) -> Vec<String> {
-    let labelled = beat
-        .line
-        .unlock
-        .iter()
-        .flatten()
-        .filter(|id| known.contains(*id))
-        .cloned();
-    let keys = beat.line.keys.clone().unwrap_or_default();
-    let mut seen = BTreeSet::new();
-    labelled
-        .chain(used(&keys).into_iter().flatten())
-        .filter(|id| seen.insert(id.clone()))
-        .collect()
+    fn used(&self, tokens: &[String]) -> Vec<Vec<String>> {
+        expand(tokens)
+            .into_iter()
+            .map(|step| {
+                if step.kind != ExpectedKind::Command {
+                    return Vec::new();
+                }
+                self.by_key.get(&step.key).cloned().into_iter().collect()
+            })
+            .collect()
+    }
+
+    fn shown_by(&self, beat: &Beat) -> Vec<String> {
+        let labelled = beat
+            .line
+            .unlock
+            .iter()
+            .flatten()
+            .filter(|id| self.known.contains(*id))
+            .cloned();
+        let keys = beat.line.keys.clone().unwrap_or_default();
+        let mut seen = BTreeSet::new();
+        labelled
+            .chain(self.used(&keys).into_iter().flatten())
+            .filter(|id| seen.insert(id.clone()))
+            .collect()
+    }
 }
 
 #[must_use]
 pub fn unit_domain(beats: &[Beat], tasks: &[Task]) -> UnitDomain {
-    let known: BTreeSet<String> = components().into_iter().collect();
-    let drill_uses = used(&[INSERT_KEY.to_owned()]);
+    let catalog = Catalog::new();
+    let drill_uses = catalog.used(&[INSERT_KEY.to_owned()]);
     let shows = beats
         .iter()
-        .map(|beat| (beat.line.id.clone(), shown_by_beat(beat, &known)))
+        .map(|beat| (beat.line.id.clone(), catalog.shown_by(beat)))
         .collect();
     let mut uses = BTreeMap::new();
     for beat in beats
@@ -68,7 +78,7 @@ pub fn unit_domain(beats: &[Beat], tasks: &[Task]) -> UnitDomain {
         uses.insert(beat.line.id.clone(), drill_uses.clone());
     }
     for task in tasks {
-        uses.insert(task.id.clone(), used(&path_of(task)));
+        uses.insert(task.id.clone(), catalog.used(&path_of(task)));
     }
     UnitDomain { shows, uses }
 }
