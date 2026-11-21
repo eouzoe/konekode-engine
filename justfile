@@ -11,8 +11,8 @@ wasm:
 cov:
     PATH="$NIGHTLY/bin:$PATH" cargo llvm-cov --workspace --branch --summary-only
 
-mutants crate tests=crate:
-    cargo mutants --package {{crate}} --test-package {{tests}}
+mutants crate *filter:
+    cargo mutants --package {{crate}} --test-package {{crate}} --test-package konekode-probe {{filter}}
 
 fuzz target seconds="60":
     cd fuzz && PATH="$NIGHTLY/bin:$PATH" cargo fuzz run {{target}} -- -max_total_time={{seconds}}
