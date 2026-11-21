@@ -98,6 +98,27 @@ impl Belief {
         self.normalize();
     }
 
+    pub fn learn(&mut self, item: usize, gain: f64) {
+        let gain = gain.clamp(0.0, 1.0);
+        let mut moved = vec![0.0; self.weights.len()];
+        for (from, state) in self.states.iter().enumerate() {
+            if state.contains(item) {
+                continue;
+            }
+            let mut next = state.clone();
+            next.insert(item);
+            if let Some(to) = self.states.iter().position(|other| *other == next) {
+                let share = self.weights[from] * gain;
+                moved[from] -= share;
+                moved[to] += share;
+            }
+        }
+        for (weight, change) in self.weights.iter_mut().zip(moved) {
+            *weight = (*weight + change).max(0.0);
+        }
+        self.normalize();
+    }
+
     #[must_use]
     pub fn marginal(&self, item: usize) -> f64 {
         self.states

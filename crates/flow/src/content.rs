@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use konekode_estimate::Needs;
 use konekode_learner::{Domains, unit_domain};
 use konekode_unit::{Beat, Task};
 use serde::{Deserialize, Serialize};
@@ -17,6 +18,8 @@ pub struct UnitContent {
 pub struct Content {
     #[serde(default)]
     pub catalog: Value,
+    #[serde(default)]
+    pub needs: Needs,
     pub units: BTreeMap<String, UnitContent>,
     #[serde(default)]
     pub version: String,

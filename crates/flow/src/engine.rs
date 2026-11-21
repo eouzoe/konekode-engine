@@ -1,3 +1,4 @@
+use konekode_estimate::{Estimates, Needs, estimate_evidence};
 use konekode_learner::{Domains, Fold, shown_by, used_by};
 use konekode_record::{Appended, Event, Log};
 use serde::{Deserialize, Serialize};
@@ -18,6 +19,7 @@ pub struct Engine {
     domains: Domains,
     fold: Fold,
     log: Log,
+    needs: Needs,
 }
 
 impl Engine {
@@ -26,7 +28,12 @@ impl Engine {
         let domains = content.domains();
         let log = Log::new(events);
         let fold = Fold::over(&log, &domains);
-        Self { domains, fold, log }
+        Self {
+            domains,
+            fold,
+            log,
+            needs: content.needs.clone(),
+        }
     }
 
     pub fn push(&mut self, event: Event) -> Pushed {
@@ -57,6 +64,18 @@ impl Engine {
 
     #[must_use]
     pub fn state(&self) -> State {
-        State::of(&self.fold, self.log.conflicts(), self.log.events().len())
+        let now = self.log.events().last().map_or(0, |event| event.at);
+        State::of(
+            &self.fold,
+            self.log.conflicts(),
+            self.log.events().len(),
+            &self.needs,
+            now,
+        )
+    }
+
+    #[must_use]
+    pub fn estimates(&self, now: i64) -> Estimates {
+        estimate_evidence(&self.fold.evidence, &self.needs, now)
     }
 }

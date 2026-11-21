@@ -7,6 +7,7 @@ repository.workspace = true
 
 [dependencies]
 konekode-complete = { workspace = true, features = ["serde"] }
+konekode-estimate = { workspace = true, features = ["serde"] }
 konekode-learner = { workspace = true, features = ["serde"] }
 konekode-record.workspace = true
 konekode-unit = { workspace = true, features = ["serde"] }

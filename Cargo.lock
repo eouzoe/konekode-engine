@@ -90,10 +90,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "konekode-estimate"
+version = "0.1.0"
+dependencies = [
+ "konekode-assess",
+ "konekode-learner",
+ "konekode-memory",
+ "konekode-space",
+ "serde",
+]
+
+[[package]]
 name = "konekode-flow"
 version = "0.1.0"
 dependencies = [
  "konekode-complete",
+ "konekode-estimate",
  "konekode-learner",
  "konekode-record",
  "konekode-unit",
@@ -110,6 +122,14 @@ dependencies = [
  "konekode-record",
  "konekode-typing",
  "konekode-unit",
+ "serde",
+]
+
+[[package]]
+name = "konekode-memory"
+version = "0.1.0"
+dependencies = [
+ "libm",
  "serde",
 ]
 
@@ -179,6 +199,12 @@ dependencies = [
  "serde_json",
  "wasm-bindgen",
 ]
+
+[[package]]
+name = "libm"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
 name = "memchr"

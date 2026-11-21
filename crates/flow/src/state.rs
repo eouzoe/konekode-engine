@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use konekode_estimate::{Estimates, Needs, estimate_evidence};
 use konekode_learner::{Fold, Observation, Standing, Tally, UnitState};
 use serde::{Deserialize, Serialize};
 
@@ -15,6 +16,7 @@ pub struct Component {
 pub struct State {
     pub components: Vec<Component>,
     pub conflicts: Vec<String>,
+    pub estimates: Estimates,
     pub events: usize,
     pub legacy: i64,
     pub observations: Vec<Observation>,
@@ -25,7 +27,7 @@ pub struct State {
 
 impl State {
     #[must_use]
-    pub fn of(fold: &Fold, conflicts: Vec<String>, events: usize) -> Self {
+    pub fn of(fold: &Fold, conflicts: Vec<String>, events: usize, needs: &Needs, now: i64) -> Self {
         let count = fold.evidence.count();
         Self {
             components: fold
@@ -39,6 +41,7 @@ impl State {
                 })
                 .collect(),
             conflicts,
+            estimates: estimate_evidence(&fold.evidence, needs, now),
             events,
             legacy: count.legacy,
             observations: fold.evidence.observations().to_vec(),

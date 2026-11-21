@@ -29,6 +29,12 @@ impl Engine {
         Ok(serde_json::to_string(&self.inner.state())?)
     }
 
+    pub fn estimates(&self, now: f64) -> Result<String, JsError> {
+        #[allow(clippy::cast_possible_truncation)]
+        let now = now as i64;
+        Ok(serde_json::to_string(&self.inner.estimates(now))?)
+    }
+
     #[must_use]
     pub fn shows(&self, unit: &str, beat: &str) -> Vec<String> {
         self.inner.shows(unit, beat)

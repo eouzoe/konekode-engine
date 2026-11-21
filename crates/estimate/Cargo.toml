@@ -1,0 +1,19 @@
+[package]
+name = "konekode-estimate"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+konekode-assess.workspace = true
+konekode-learner.workspace = true
+konekode-memory.workspace = true
+konekode-space.workspace = true
+serde = { workspace = true, optional = true }
+
+[features]
+serde = ["dep:serde", "konekode-memory/serde"]
+
+[lints]
+workspace = true

@@ -53,9 +53,8 @@ fn event(seq: i64, at: i64, kind: &str, reference: &str, data: &Value) -> Value 
     })
 }
 
-#[test]
-fn a_known_history_gives_the_known_state() {
-    let values = [
+fn known_history() -> [Value; 7] {
+    [
         event(1, 1, "beat.reached", "b1", &json!({"shows": "key.i"})),
         event(2, 2, "task.entered", "t1", &json!({"mode": "free"})),
         event(
@@ -81,7 +80,12 @@ fn a_known_history_gives_the_known_state() {
         ),
         event(6, 21, "item.unlocked", "pair.paren", &json!({})),
         event(7, 22, "check.passed", "t1", &json!({})),
-    ];
+    ]
+}
+
+#[test]
+fn a_known_history_gives_the_known_state() {
+    let values = known_history();
     let state = Engine::new(&Content::default(), &read_events(&values)).state();
     assert_eq!(state.events, 7);
     assert_eq!(
@@ -142,6 +146,26 @@ fn a_known_history_gives_the_known_state() {
         ]
     );
     assert_eq!((state.legacy, state.unread), (0, 0));
+}
+
+#[test]
+fn a_known_history_gives_the_known_estimates() {
+    let values = known_history();
+    let engine = Engine::new(&Content::default(), &read_events(&values));
+    let state = engine.state();
+    assert_eq!(engine.estimates(22), state.estimates);
+    assert!((state.estimates.careless - 0.1).abs() < 1e-12);
+    let known: Vec<(&str, f64, i64)> = state
+        .estimates
+        .components
+        .iter()
+        .map(|item| (item.id.as_str(), item.known, item.reviews))
+        .collect();
+    assert_eq!(known.len(), 2);
+    assert_eq!((known[0].0, known[0].2), ("key.i", 1));
+    assert!((known[0].1 - 0.228_703_703_703_703_7).abs() < 1e-12);
+    assert_eq!((known[1].0, known[1].2), ("key.esc", 1));
+    assert!((known[1].1 - 0.858_333_333_333_333_3).abs() < 1e-12);
 }
 
 fn row(id: i64, actor: &str, seq: i64, body: Value) -> Row {
