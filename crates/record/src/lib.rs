@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
-use std::collections::BTreeMap;
+use std::collections::btree_map::Entry as Slot;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -74,13 +75,20 @@ fn version(object: &Map<String, Value>, wanted: i64) -> bool {
     object.get("version").and_then(safe_integer) == Some(wanted)
 }
 
+fn plain_zero(number: f64) -> f64 {
+    if matches!(number.partial_cmp(&0.0), Some(Ordering::Equal)) {
+        return 0.0;
+    }
+    number
+}
+
 fn data(object: &Map<String, Value>) -> Option<Data> {
     let fields = object.get("data")?.as_object()?;
     let mut out = Data::new();
     for (key, value) in fields {
         let item = match value {
             Value::Bool(flag) => DataValue::Flag(*flag),
-            Value::Number(number) => DataValue::Number(number.as_f64()?),
+            Value::Number(number) => DataValue::Number(plain_zero(number.as_f64()?)),
             Value::String(text) => DataValue::Text(text.clone()),
             _ => return None,
         };
@@ -212,29 +220,177 @@ pub fn read_events(values: &[Value]) -> Vec<Event> {
 }
 
 fn by_time(left: &Event, right: &Event) -> Ordering {
-    if left.at != right.at {
-        return left.at.cmp(&right.at);
+    left.at
+        .cmp(&right.at)
+        .then_with(|| left.session.as_bytes().cmp(right.session.as_bytes()))
+        .then_with(|| left.seq.cmp(&right.seq))
+        .then_with(|| left.id.as_bytes().cmp(right.id.as_bytes()))
+}
+
+fn value_rank(value: &DataValue) -> u8 {
+    match value {
+        DataValue::Flag(_) => 0,
+        DataValue::Number(_) => 1,
+        DataValue::Text(_) => 2,
     }
-    if left.session == right.session && left.seq != right.seq {
-        return left.seq.cmp(&right.seq);
+}
+
+fn value_order(left: &DataValue, right: &DataValue) -> Ordering {
+    match (left, right) {
+        (DataValue::Flag(one), DataValue::Flag(other)) => one.cmp(other),
+        (DataValue::Number(one), DataValue::Number(other)) => one.total_cmp(other),
+        (DataValue::Text(one), DataValue::Text(other)) => one.as_bytes().cmp(other.as_bytes()),
+        _ => value_rank(left).cmp(&value_rank(right)),
     }
-    left.id.as_bytes().cmp(right.id.as_bytes())
+}
+
+fn data_order(left: &Data, right: &Data) -> Ordering {
+    for ((left_key, left_value), (right_key, right_value)) in left.iter().zip(right) {
+        let found = left_key
+            .as_bytes()
+            .cmp(right_key.as_bytes())
+            .then_with(|| value_order(left_value, right_value));
+        if found != Ordering::Equal {
+            return found;
+        }
+    }
+    left.len().cmp(&right.len())
+}
+
+fn rank(left: &Event, right: &Event) -> Ordering {
+    by_time(left, right)
+        .then_with(|| left.kind.as_bytes().cmp(right.kind.as_bytes()))
+        .then_with(|| left.unit.as_bytes().cmp(right.unit.as_bytes()))
+        .then_with(|| left.reference.as_bytes().cmp(right.reference.as_bytes()))
+        .then_with(|| left.content.as_bytes().cmp(right.content.as_bytes()))
+        .then_with(|| left.site.as_bytes().cmp(right.site.as_bytes()))
+        .then_with(|| left.actor.as_bytes().cmp(right.actor.as_bytes()))
+        .then_with(|| left.version.cmp(&right.version))
+        .then_with(|| data_order(&left.data, &right.data))
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Ordered {
+    pub conflicts: Vec<String>,
+    pub duplicates: i64,
+    pub events: Vec<Event>,
+}
+
+#[must_use]
+pub fn order(events: &[Event]) -> Ordered {
+    let mut kept: BTreeMap<&str, &Event> = BTreeMap::new();
+    let mut conflicts = BTreeSet::new();
+    let mut duplicates = 0;
+    for event in events {
+        match kept.entry(event.id.as_str()) {
+            Slot::Vacant(slot) => {
+                slot.insert(event);
+            }
+            Slot::Occupied(mut slot) => {
+                duplicates += 1;
+                let found = rank(event, slot.get());
+                if found != Ordering::Equal {
+                    conflicts.insert(event.id.clone());
+                }
+                if found == Ordering::Less {
+                    slot.insert(event);
+                }
+            }
+        }
+    }
+    let mut events: Vec<Event> = kept.into_values().cloned().collect();
+    events.sort_by(by_time);
+    Ordered {
+        conflicts: conflicts.into_iter().collect(),
+        duplicates,
+        events,
+    }
 }
 
 #[must_use]
 pub fn ordered(events: &[Event]) -> Vec<Event> {
-    let mut place: BTreeMap<&str, usize> = BTreeMap::new();
-    let mut unique: Vec<Event> = Vec::new();
-    for event in events {
-        if let Some(at) = place.get(event.id.as_str()) {
-            unique[*at] = event.clone();
-        } else {
-            place.insert(&event.id, unique.len());
-            unique.push(event.clone());
+    order(events).events
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Appended {
+    Inside,
+    Kept,
+    Last,
+    Replaced,
+    Same,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Log {
+    conflicts: BTreeSet<String>,
+    events: Vec<Event>,
+    ids: BTreeSet<String>,
+}
+
+impl Log {
+    #[must_use]
+    pub fn new(events: &[Event]) -> Self {
+        let Ordered {
+            conflicts, events, ..
+        } = order(events);
+        let ids = events.iter().map(|event| event.id.clone()).collect();
+        Self {
+            conflicts: conflicts.into_iter().collect(),
+            events,
+            ids,
         }
     }
-    unique.sort_by(by_time);
-    unique
+
+    #[must_use]
+    pub fn events(&self) -> &[Event] {
+        &self.events
+    }
+
+    #[must_use]
+    pub fn conflicts(&self) -> Vec<String> {
+        self.conflicts.iter().cloned().collect()
+    }
+
+    pub fn append(&mut self, event: Event) -> Appended {
+        if self.ids.contains(&event.id) {
+            return self.replace(event);
+        }
+        self.ids.insert(event.id.clone());
+        let last = self
+            .events
+            .last()
+            .is_none_or(|last| by_time(last, &event) == Ordering::Less);
+        if last {
+            self.events.push(event);
+            return Appended::Last;
+        }
+        let place = self
+            .events
+            .partition_point(|held| by_time(held, &event) == Ordering::Less);
+        self.events.insert(place, event);
+        Appended::Inside
+    }
+
+    fn replace(&mut self, event: Event) -> Appended {
+        let Some(place) = self.events.iter().position(|held| held.id == event.id) else {
+            return Appended::Same;
+        };
+        let found = rank(&event, &self.events[place]);
+        if found == Ordering::Equal {
+            return Appended::Same;
+        }
+        self.conflicts.insert(event.id.clone());
+        if found == Ordering::Greater {
+            return Appended::Kept;
+        }
+        self.events.remove(place);
+        let spot = self
+            .events
+            .partition_point(|kept| by_time(kept, &event) == Ordering::Less);
+        self.events.insert(spot, event);
+        Appended::Replaced
+    }
 }
 
 #[must_use]
