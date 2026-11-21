@@ -8,12 +8,12 @@ use konekode_edit::{
     press, run, step,
 };
 use konekode_learner::{
-    Count, UnitDomain, described, kept_kinds, shown_by, unit_domain, unit_state, unlocked_items,
-    used_by,
+    Count, Domains, UnitDomain, described, kept_kinds, observe, shown_by, unit_domain, unit_state,
+    unlocked_items, used_by,
 };
 use konekode_record::DataValue;
 use konekode_record::{
-    Clock, Entry, Event, Source, build, latest_of, ordered, read_counted, read_event,
+    Clock, Entry, Event, Source, build, latest_of, order, ordered, read_counted, read_event,
 };
 use konekode_run::{
     Known, KnownRow, Outcome, Text as Ui, busy_status, describe, diagnose, explain, say,
@@ -211,6 +211,14 @@ fn record_op(op: &str, args: &Value) -> Reply {
             arg::<Vec<Value>>(args, "values").and_then(|values| encode(&read_counted(&values)))
         }
         "ordered" => arg::<Vec<Event>>(args, "events").and_then(|events| encode(&ordered(&events))),
+        "order" => arg::<Vec<Event>>(args, "events").map(|events| {
+            let reading = order(&events);
+            json!({
+                "conflicts": reading.conflicts,
+                "duplicates": reading.duplicates,
+                "events": reading.events,
+            })
+        }),
         "latestOf" => {
             arg::<Vec<Event>>(args, "events").and_then(|events| encode(&latest_of(&events)))
         }
@@ -354,8 +362,30 @@ fn learner_op(op: &str, args: &Value) -> Reply {
             ))
         }),
         "keptKinds" => encode(&kept_kinds()),
+        "observe" => observe_op(args),
         _ => return None,
     })
+}
+
+fn observe_op(args: &Value) -> Result<Value, String> {
+    let events = arg::<Vec<Event>>(args, "events")?;
+    let domains = arg::<Domains>(args, "domains")?;
+    let evidence = observe(&events, &domains);
+    let count = evidence.count();
+    let mut model = Vec::new();
+    for (id, tally) in evidence.tallies() {
+        let mut view = encode(&tally)?;
+        if let Some(fields) = view.as_object_mut() {
+            fields.insert("standing".to_owned(), encode(&tally.standing())?);
+        }
+        model.push(json!([id, view]));
+    }
+    Ok(json!({
+        "legacy": count.legacy,
+        "model": model,
+        "observations": encode(&evidence.observations())?,
+        "unread": count.unread,
+    }))
 }
 
 fn answer(op: &str, args: &Value, ui: &Ui) -> Result<Value, String> {
