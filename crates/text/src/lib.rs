@@ -69,7 +69,7 @@ pub fn index_of(text: &str, needle: &str, from: i64) -> i64 {
 #[must_use]
 pub fn last_index_of(text: &str, needle: &str, from: i64) -> i64 {
     let size = len(text);
-    let mut at = from.clamp(0, size).min(size - len(needle));
+    let mut at = from.clamp(0, size);
     while at >= 0 {
         if slice(text, at, at + len(needle)) == needle {
             return at;
@@ -92,16 +92,6 @@ pub fn is_js_space(char: char) -> bool {
 #[must_use]
 pub fn js_trim(text: &str) -> &str {
     text.trim_matches(is_js_space)
-}
-
-#[must_use]
-pub fn js_trim_start(text: &str) -> &str {
-    text.trim_start_matches(is_js_space)
-}
-
-#[must_use]
-pub fn js_trim_end(text: &str) -> &str {
-    text.trim_end_matches(is_js_space)
 }
 
 #[must_use]
