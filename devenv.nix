@@ -4,5 +4,5 @@
     enable = true;
     toolchainFile = ./rust-toolchain.toml;
   };
-  packages = [ pkgs.just ];
+  packages = [ pkgs.just pkgs.wasm-bindgen-cli ];
 }
