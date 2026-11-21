@@ -42,11 +42,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "konekode-learner"
+version = "0.1.0"
+dependencies = [
+ "konekode-complete",
+ "konekode-edit",
+ "konekode-record",
+ "konekode-typing",
+ "konekode-unit",
+ "serde",
+]
+
+[[package]]
 name = "konekode-probe"
 version = "0.1.0"
 dependencies = [
  "konekode-complete",
  "konekode-edit",
+ "konekode-learner",
  "konekode-record",
  "konekode-run",
  "konekode-typing",

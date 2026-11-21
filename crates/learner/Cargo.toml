@@ -1,0 +1,20 @@
+[package]
+name = "konekode-learner"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+konekode-complete.workspace = true
+konekode-edit.workspace = true
+konekode-record.workspace = true
+konekode-typing.workspace = true
+konekode-unit.workspace = true
+serde = { workspace = true, optional = true }
+
+[features]
+serde = ["dep:serde"]
+
+[lints]
+workspace = true

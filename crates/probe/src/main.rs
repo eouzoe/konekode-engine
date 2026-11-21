@@ -7,6 +7,11 @@ use konekode_edit::{
     expected_now, final_text, fulfil, goal_of, indent_below, indent_split, keys_of, known_keys,
     press, run, step,
 };
+use konekode_learner::{
+    Count, UnitDomain, described, kept_kinds, shown_by, unit_domain, unit_state, unlocked_items,
+    used_by,
+};
+use konekode_record::DataValue;
 use konekode_record::{
     Clock, Entry, Event, Source, build, latest_of, ordered, read_counted, read_event,
 };
@@ -310,8 +315,52 @@ fn run_op_text(op: &str, ui: &Ui, args: &Value) -> Reply {
     })
 }
 
+fn domain_view(domain: &UnitDomain) -> Value {
+    json!({
+        "shows": domain.shows.iter().collect::<Vec<_>>(),
+        "uses": domain.uses.iter().collect::<Vec<_>>(),
+    })
+}
+
+fn described_op(args: &Value) -> Result<Value, String> {
+    let own = arg::<Option<DataValue>>(args, "own")?;
+    let look = arg::<Option<Vec<String>>>(args, "lookUp")?;
+    let mut count = Count::default();
+    let result = described(&mut count, own.as_ref(), || look);
+    Ok(json!({ "count": encode(&count)?, "result": result }))
+}
+
+fn learner_op(op: &str, args: &Value) -> Reply {
+    Some(match op {
+        "unitDomain" => arg::<Vec<konekode_unit::Beat>>(args, "beats").and_then(|beats| {
+            Ok(domain_view(&unit_domain(
+                &beats,
+                &arg::<Vec<Task>>(args, "tasks")?,
+            )))
+        }),
+        "unitState" => arg::<Vec<Event>>(args, "events")
+            .and_then(|events| encode(&unit_state(&events, &arg::<String>(args, "unit")?))),
+        "unlockedItems" => {
+            arg::<Vec<Event>>(args, "events").and_then(|events| encode(&unlocked_items(&events)))
+        }
+        "described" => described_op(args),
+        "shownBy" => arg::<Option<UnitDomain>>(args, "domain")
+            .and_then(|domain| encode(&shown_by(domain.as_ref(), &arg::<String>(args, "beat")?))),
+        "usedBy" => arg::<Option<UnitDomain>>(args, "domain").and_then(|domain| {
+            encode(&used_by(
+                domain.as_ref(),
+                &arg::<String>(args, "task")?,
+                arg::<f64>(args, "step")?,
+            ))
+        }),
+        "keptKinds" => encode(&kept_kinds()),
+        _ => return None,
+    })
+}
+
 fn answer(op: &str, args: &Value, ui: &Ui) -> Result<Value, String> {
     run_op_text(op, ui, args)
+        .or_else(|| learner_op(op, args))
         .or_else(|| complete_op(op, args))
         .or_else(|| buffer_op(op, args))
         .or_else(|| session_op(op, args))
