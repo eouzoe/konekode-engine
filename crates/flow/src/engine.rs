@@ -46,11 +46,6 @@ impl Engine {
     }
 
     #[must_use]
-    pub fn log(&self) -> &Log {
-        &self.log
-    }
-
-    #[must_use]
     pub fn shows(&self, unit: &str, beat: &str) -> Vec<String> {
         shown_by(self.domains.get(unit), beat).unwrap_or_default()
     }
