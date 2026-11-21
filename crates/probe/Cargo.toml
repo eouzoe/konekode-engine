@@ -11,6 +11,7 @@ konekode-complete = { workspace = true, features = ["serde"] }
 konekode-edit = { workspace = true, features = ["serde"] }
 konekode-unit = { workspace = true, features = ["serde"] }
 konekode-record.workspace = true
+konekode-run = { workspace = true, features = ["serde"] }
 konekode-typing = { workspace = true, features = ["serde"] }
 serde.workspace = true
 serde_json.workspace = true

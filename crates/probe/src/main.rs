@@ -10,6 +10,9 @@ use konekode_edit::{
 use konekode_record::{
     Clock, Entry, Event, Source, build, latest_of, ordered, read_counted, read_event,
 };
+use konekode_run::{
+    Known, KnownRow, Outcome, Text as Ui, busy_status, describe, diagnose, explain, say,
+};
 use konekode_typing::{
     Drill, Feedback, KeyInput, Next, attempt_of, create_drill, escape, expected_char, find_key,
     has_started, is_done, is_typed, judge, needs_telling, remind, rows, type_into,
@@ -265,8 +268,51 @@ fn typing_op(op: &str, args: &Value) -> Reply {
     })
 }
 
-fn answer(op: &str, args: &Value) -> Result<Value, String> {
-    complete_op(op, args)
+fn known_op(args: &Value) -> Result<Value, String> {
+    let known = Known::new(&arg::<Vec<KnownRow>>(args, "rows")?);
+    encode(&known.outcome(
+        &arg::<String>(args, "source")?,
+        &arg::<String>(args, "input")?,
+    ))
+}
+
+fn say_op(ui: &Ui, args: &Value) -> Result<Value, String> {
+    let values = arg::<Vec<(String, String)>>(args, "values")?;
+    let pairs: Vec<(&str, &str)> = values
+        .iter()
+        .map(|(name, value)| (name.as_str(), value.as_str()))
+        .collect();
+    say(ui, &arg::<String>(args, "key")?, &pairs)
+        .map_err(|error| error.to_string())
+        .and_then(|line| encode(&line))
+}
+
+fn run_op_text(op: &str, ui: &Ui, args: &Value) -> Reply {
+    let missing = |error: konekode_run::Missing| error.to_string();
+    Some(match op {
+        "explain" => arg::<String>(args, "message")
+            .and_then(|message| explain(ui, &message).map_err(missing))
+            .and_then(|line| encode(&line)),
+        "diagnose" => arg::<String>(args, "expected")
+            .and_then(|expected| {
+                diagnose(ui, &expected, &arg::<String>(args, "actual")?).map_err(missing)
+            })
+            .and_then(|line| encode(&line)),
+        "describe" => arg::<Outcome>(args, "outcome")
+            .and_then(|outcome| describe(ui, &outcome).map_err(missing))
+            .and_then(|view| encode(&view)),
+        "busyStatus" => arg::<i64>(args, "percent")
+            .and_then(|percent| busy_status(ui, percent).map_err(missing))
+            .and_then(|line| encode(&line)),
+        "knownOutcome" => known_op(args),
+        "say" => say_op(ui, args),
+        _ => return None,
+    })
+}
+
+fn answer(op: &str, args: &Value, ui: &Ui) -> Result<Value, String> {
+    run_op_text(op, ui, args)
+        .or_else(|| complete_op(op, args))
         .or_else(|| buffer_op(op, args))
         .or_else(|| session_op(op, args))
         .or_else(|| unit_op(op, args))
@@ -278,10 +324,18 @@ fn answer(op: &str, args: &Value) -> Result<Value, String> {
 fn main() -> io::Result<()> {
     let stdin = io::stdin();
     let mut stdout = io::BufWriter::new(io::stdout().lock());
+    let mut ui = Ui::new();
     for line in stdin.lock().lines() {
         let line = line?;
         let reply = match serde_json::from_str::<Request>(&line) {
-            Ok(request) => match answer(&request.op, &request.args) {
+            Ok(request) if request.op == "setText" => match arg::<Ui>(&request.args, "text") {
+                Ok(table) => {
+                    ui = table;
+                    json!({ "ok": true })
+                }
+                Err(error) => json!({ "error": error }),
+            },
+            Ok(request) => match answer(&request.op, &request.args, &ui) {
                 Ok(value) => json!({ "ok": value }),
                 Err(error) => json!({ "error": error }),
             },
