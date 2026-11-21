@@ -38,6 +38,7 @@ version = "0.1.0"
 dependencies = [
  "konekode-complete",
  "konekode-edit",
+ "konekode-unit",
  "serde",
  "serde_json",
 ]
@@ -49,6 +50,13 @@ version = "0.1.0"
 [[package]]
 name = "konekode-text"
 version = "0.1.0"
+
+[[package]]
+name = "konekode-unit"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "memchr"

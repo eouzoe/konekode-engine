@@ -13,6 +13,7 @@ konekode-complete = { path = "crates/complete" }
 konekode-edit = { path = "crates/edit" }
 konekode-space = { path = "crates/space" }
 konekode-text = { path = "crates/text" }
+konekode-unit = { path = "crates/unit" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

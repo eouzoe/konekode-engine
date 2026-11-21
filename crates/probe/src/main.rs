@@ -7,6 +7,7 @@ use konekode_edit::{
     expected_now, final_text, fulfil, goal_of, indent_below, indent_split, keys_of, known_keys,
     press, run, step,
 };
+use konekode_unit::{Part, Task, Text, flatten, path_of, plan_for, program_of, tasks_of};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
@@ -104,6 +105,22 @@ fn answer(op: &str, args: &Value) -> Result<Value, String> {
         "knownKeys" => encode(&known_keys()),
         "catalog" => encode(&catalog()),
         "engine" => engine_view(&arg::<BTreeSet<String>>(args, "unlocked")?),
+        "flatten" => flatten(
+            &arg::<Vec<Part>>(args, "parts")?,
+            &arg::<Text>(args, "text")?,
+        )
+        .map_err(|error| error.to_string())
+        .and_then(|beats| encode(&beats)),
+        "tasksOf" => encode(&tasks_of(&arg::<Vec<Part>>(args, "parts")?)),
+        "pathOf" => encode(&path_of(&arg::<Task>(args, "task")?)),
+        "programOf" => encode(&program_of(
+            &arg::<String>(args, "starter")?,
+            &arg::<String>(args, "goal")?,
+        )),
+        "planFor" => encode(&plan_for(
+            &arg::<Vec<Task>>(args, "tasks")?,
+            &arg::<String>(args, "beat")?,
+        )),
         _ => Err(format!("unknown op {op}")),
     }
 }
