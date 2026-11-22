@@ -120,3 +120,101 @@ impl FromIterator<usize> for Set {
         set
     }
 }
+
+#[cfg(kani)]
+mod proofs {
+    use super::{BITS, Set};
+
+    const ITEMS: usize = 2 * BITS;
+
+    fn any_set() -> Set {
+        let mut set = Set {
+            words: vec![kani::any(), kani::any()],
+        };
+        set.trim();
+        set
+    }
+
+    fn any_item() -> usize {
+        let item: usize = kani::any();
+        kani::assume(item < ITEMS);
+        item
+    }
+
+    fn trimmed(set: &Set) -> bool {
+        set.words.last() != Some(&0)
+    }
+
+    #[kani::proof]
+    #[kani::unwind(4)]
+    fn union_holds_each_side() {
+        let (left, right, item) = (any_set(), any_set(), any_item());
+        let both = left.union(&right);
+        assert!(trimmed(&both));
+        assert_eq!(
+            both.contains(item),
+            left.contains(item) || right.contains(item)
+        );
+    }
+
+    #[kani::proof]
+    #[kani::unwind(4)]
+    fn intersection_holds_both_sides() {
+        let (left, right, item) = (any_set(), any_set(), any_item());
+        let common = left.intersection(&right);
+        assert!(trimmed(&common));
+        assert_eq!(
+            common.contains(item),
+            left.contains(item) && right.contains(item)
+        );
+    }
+
+    #[kani::proof]
+    #[kani::unwind(4)]
+    fn difference_holds_the_left_side_only() {
+        let (left, right, item) = (any_set(), any_set(), any_item());
+        let rest = left.difference(&right);
+        assert!(trimmed(&rest));
+        assert_eq!(
+            rest.contains(item),
+            left.contains(item) && !right.contains(item)
+        );
+    }
+
+    #[kani::proof]
+    #[kani::unwind(4)]
+    fn subset_means_nothing_is_left_over() {
+        let (left, right, item) = (any_set(), any_set(), any_item());
+        assert_eq!(left.is_subset(&right), left.difference(&right).is_empty());
+        if left.is_subset(&right) && left.contains(item) {
+            assert!(right.contains(item));
+        }
+    }
+
+    #[kani::proof]
+    #[kani::unwind(4)]
+    fn equal_members_mean_equal_sets() {
+        let (left, right) = (any_set(), any_set());
+        if left.is_subset(&right) && right.is_subset(&left) {
+            assert!(left == right);
+        }
+    }
+
+    #[kani::proof]
+    #[kani::unwind(4)]
+    fn insert_and_remove_touch_one_item() {
+        let (start, item, other) = (any_set(), any_item(), any_item());
+        let mut grown = start.clone();
+        grown.insert(item);
+        assert!(trimmed(&grown));
+        assert!(grown.contains(item));
+        let mut shrunk = start.clone();
+        shrunk.remove(item);
+        assert!(trimmed(&shrunk));
+        assert!(!shrunk.contains(item));
+        if other != item {
+            assert_eq!(grown.contains(other), start.contains(other));
+            assert_eq!(shrunk.contains(other), start.contains(other));
+        }
+    }
+}
