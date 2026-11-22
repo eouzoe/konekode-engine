@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use konekode_space::Set;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -6,6 +8,7 @@ pub enum Error {
     Lengths,
     Weights,
     Noise,
+    Traces,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -79,6 +82,42 @@ impl Belief {
         let mut belief = Self { states, weights };
         belief.normalize();
         Ok(belief)
+    }
+
+    #[must_use]
+    pub fn project(&self, kept: &Set) -> Self {
+        let mut mass: BTreeMap<Set, f64> = BTreeMap::new();
+        for (state, weight) in self.states.iter().zip(&self.weights) {
+            *mass.entry(state.intersection(kept)).or_default() += weight;
+        }
+        let (states, weights) = mass.into_iter().unzip();
+        Self { states, weights }
+    }
+
+    pub fn extend(&self, states: Vec<Set>, kept: &Set) -> Result<Self, Error> {
+        let mut sizes: BTreeMap<Set, usize> = BTreeMap::new();
+        for state in &states {
+            *sizes.entry(state.intersection(kept)).or_default() += 1;
+        }
+        let mass: BTreeMap<&Set, f64> = self
+            .states
+            .iter()
+            .zip(self.weights.iter().copied())
+            .collect();
+        if mass.len() != self.states.len()
+            || sizes.len() != mass.len()
+            || sizes.keys().any(|trace| !mass.contains_key(trace))
+        {
+            return Err(Error::Traces);
+        }
+        let weights = states
+            .iter()
+            .map(|state| {
+                let trace = state.intersection(kept);
+                mass[&trace] / f64::from(u32::try_from(sizes[&trace]).unwrap_or(u32::MAX))
+            })
+            .collect();
+        Self::weighted(states, weights)
     }
 
     #[must_use]

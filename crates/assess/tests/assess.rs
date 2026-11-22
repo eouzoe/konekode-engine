@@ -206,3 +206,99 @@ fn a_success_that_is_easy_to_get_without_knowing_counts_for_little() {
     assert!(followed.marginal(3) > start);
     assert!(alone.marginal(3) > followed.marginal(3));
 }
+
+fn weighted_space() -> Belief {
+    let states = space().states(1000).expect("small");
+    let weights = (1..=states.len())
+        .map(|at| f64::from(u32::try_from(at * at % 7 + 1).expect("small")))
+        .collect();
+    Belief::weighted(states, weights).expect("usable")
+}
+
+#[test]
+fn the_projected_distribution_adds_up_each_trace() {
+    let space = space();
+    let belief = weighted_space();
+    for mask in 0..1_u32 << space.len() {
+        let kept: Set = (0..space.len())
+            .filter(|bit| mask >> bit & 1 == 1)
+            .collect();
+        let projected = belief.project(&kept);
+        assert_eq!(
+            projected.states(),
+            space
+                .projection(&kept)
+                .states(1000)
+                .expect("small")
+                .as_slice()
+        );
+        for (trace, weight) in projected.states().iter().zip(projected.weights()) {
+            let exact: f64 = belief
+                .states()
+                .iter()
+                .zip(belief.weights())
+                .filter(|(state, _)| state.intersection(&kept) == *trace)
+                .map(|(_, weight)| weight)
+                .sum();
+            close(*weight, exact);
+        }
+    }
+}
+
+#[test]
+fn the_uniform_extension_shares_each_trace_evenly_and_serves_as_a_prior() {
+    let space = space();
+    let states = space.states(1000).expect("small");
+    let belief = weighted_space();
+    for mask in 0..1_u32 << space.len() {
+        let kept: Set = (0..space.len())
+            .filter(|bit| mask >> bit & 1 == 1)
+            .collect();
+        let projected = belief.project(&kept);
+        let mut extended = projected
+            .extend(states.clone(), &kept)
+            .expect("same traces");
+        for (state, weight) in extended.states().iter().zip(extended.weights()) {
+            let trace = state.intersection(&kept);
+            let class = states
+                .iter()
+                .filter(|other| other.intersection(&kept) == trace)
+                .count();
+            let at = projected
+                .states()
+                .iter()
+                .position(|other| *other == trace)
+                .expect("a trace");
+            close(
+                *weight,
+                projected.weights()[at] / f64::from(u32::try_from(class).expect("small")),
+            );
+        }
+        let again = extended.project(&kept);
+        assert_eq!(again.states(), projected.states());
+        for (left, right) in again.weights().iter().zip(projected.weights()) {
+            close(*left, *right);
+        }
+        extended.observe(answer(3, true), open_ended());
+        let total: f64 = extended.weights().iter().sum();
+        close(total, 1.0);
+    }
+}
+
+#[test]
+fn an_extension_needs_the_traces_of_the_same_structure() {
+    let states = space().states(1000).expect("small");
+    let kept = set(&[3]);
+    let one = Belief::uniform(vec![set(&[])]).expect("non-empty");
+    assert!(matches!(
+        one.extend(states.clone(), &kept),
+        Err(Error::Traces)
+    ));
+    let doubled = Belief::uniform(vec![set(&[]), set(&[]), set(&[3])]).expect("non-empty");
+    assert!(matches!(
+        doubled.extend(states.clone(), &kept),
+        Err(Error::Traces)
+    ));
+    let stranger = Belief::uniform(vec![set(&[]), set(&[3]), set(&[5])]).expect("non-empty");
+    assert!(matches!(stranger.extend(states, &kept), Err(Error::Traces)));
+}

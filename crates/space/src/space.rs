@@ -1,6 +1,6 @@
 use std::collections::{BTreeSet, VecDeque};
 
-use crate::Set;
+use crate::{Finding, Set, check};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Error {
@@ -9,28 +9,23 @@ pub enum Error {
     Unknown { item: usize, need: usize },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Space {
-    clauses: Vec<Vec<Set>>,
+    pub(crate) clauses: Vec<Vec<Set>>,
 }
 
 impl Space {
     pub fn new(clauses: Vec<Vec<Set>>) -> Result<Self, Error> {
-        let size = clauses.len();
-        for (item, options) in clauses.iter().enumerate() {
-            if options.is_empty() {
-                return Err(Error::NoClause { item });
-            }
-            for clause in options {
-                if clause.contains(item) {
-                    return Err(Error::SelfNeed { item });
-                }
-                if let Some(need) = clause.iter().find(|&need| need >= size) {
-                    return Err(Error::Unknown { item, need });
-                }
-            }
+        match check::errors(&clauses).into_iter().next() {
+            Some(Finding::NoClause { item }) => Err(Error::NoClause { item }),
+            Some(Finding::SelfNeed { item, .. }) => Err(Error::SelfNeed { item }),
+            Some(Finding::Unknown { item, need, .. }) => Err(Error::Unknown { item, need }),
+            _ => Ok(Self { clauses }),
         }
-        Ok(Self { clauses })
+    }
+
+    pub(crate) const fn trusted(clauses: Vec<Vec<Set>>) -> Self {
+        Self { clauses }
     }
 
     #[must_use]
