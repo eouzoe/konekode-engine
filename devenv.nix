@@ -16,6 +16,7 @@ in
     pkgs.cargo-llvm-cov
     pkgs.cargo-mutants
     pkgs.cargo-fuzz
+    pkgs.elan
   ];
   env.NIGHTLY = "${nightly}";
 }

@@ -1,0 +1,13 @@
+name = "KonekodeProofs"
+defaultTargets = ["KonekodeProofs"]
+
+[leanOptions]
+autoImplicit = false
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.36.0"
+
+[[lean_lib]]
+name = "KonekodeProofs"

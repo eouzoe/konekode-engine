@@ -3,6 +3,10 @@ check:
     cargo clippy --workspace --all-targets -- -D warnings
     cargo test --workspace
     cargo build --workspace --target wasm32-unknown-unknown
+    just proofs
+
+proofs:
+    cd proofs && lake exe cache get && lake build
 
 wasm:
     cargo build --release --target wasm32-unknown-unknown -p konekode-wasm
