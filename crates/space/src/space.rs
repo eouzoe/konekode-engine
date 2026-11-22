@@ -1,5 +1,6 @@
 use std::collections::{BTreeSet, VecDeque};
 
+use crate::structure::{atoms_of, without};
 use crate::{Finding, Set, check};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -11,21 +12,32 @@ pub enum Error {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Space {
-    pub(crate) clauses: Vec<Vec<Set>>,
+    clauses: Vec<Vec<Set>>,
+    pub(crate) atoms: Vec<Vec<Set>>,
 }
 
 impl Space {
-    pub fn new(clauses: Vec<Vec<Set>>) -> Result<Self, Error> {
-        match check::errors(&clauses).into_iter().next() {
+    pub fn new(rules: &[Vec<Set>]) -> Result<Self, Error> {
+        match check::errors(rules).into_iter().next() {
             Some(Finding::NoClause { item }) => Err(Error::NoClause { item }),
             Some(Finding::SelfNeed { item, .. }) => Err(Error::SelfNeed { item }),
             Some(Finding::Unknown { item, need, .. }) => Err(Error::Unknown { item, need }),
-            _ => Ok(Self { clauses }),
+            _ => Ok(Self::from_atoms(atoms_of(rules))),
         }
     }
 
-    pub(crate) const fn trusted(clauses: Vec<Vec<Set>>) -> Self {
-        Self { clauses }
+    pub(crate) fn from_atoms(atoms: Vec<Vec<Set>>) -> Self {
+        let clauses = atoms
+            .iter()
+            .enumerate()
+            .map(|(item, list)| list.iter().map(|atom| without(atom, item)).collect())
+            .collect();
+        Self { clauses, atoms }
+    }
+
+    #[must_use]
+    pub fn atoms(&self, item: usize) -> &[Set] {
+        &self.atoms[item]
     }
 
     #[must_use]
@@ -147,37 +159,13 @@ impl Space {
 
     #[must_use]
     pub fn gap(&self, state: &Set, target: usize) -> Option<Set> {
-        self.solve(target, state, &Set::new())
-    }
-
-    fn solve(&self, item: usize, have: &Set, open: &Set) -> Option<Set> {
-        if have.contains(item) {
+        if state.contains(target) {
             return Some(Set::new());
         }
-        if open.contains(item) {
-            return None;
-        }
-        let mut inside = open.clone();
-        inside.insert(item);
-        let mut best: Option<Set> = None;
-        for clause in &self.clauses[item] {
-            let mut added = Some(Set::new());
-            for need in clause.iter() {
-                added = added.and_then(|sofar| {
-                    self.solve(need, &have.union(&sofar), &inside)
-                        .map(|more| sofar.union(&more))
-                });
-            }
-            if let Some(found) = added
-                && best.as_ref().is_none_or(|kept| found.len() < kept.len())
-            {
-                best = Some(found);
-            }
-        }
-        best.map(|mut found| {
-            found.insert(item);
-            found
-        })
+        self.atoms[target]
+            .iter()
+            .map(|atom| atom.difference(state))
+            .min_by_key(Set::len)
     }
 }
 

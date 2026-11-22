@@ -123,7 +123,7 @@ fn space_of(items: &[String], needs: &Needs) -> Option<Space> {
         .enumerate()
         .map(|(at, id)| (id.as_str(), at))
         .collect();
-    let clauses = items
+    let clauses: Vec<Vec<Set>> = items
         .iter()
         .map(|id| {
             let options: Vec<Set> = needs
@@ -144,7 +144,7 @@ fn space_of(items: &[String], needs: &Needs) -> Option<Space> {
             }
         })
         .collect();
-    Space::new(clauses).ok()
+    Space::new(&clauses).ok()
 }
 
 struct Part {

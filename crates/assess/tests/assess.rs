@@ -6,7 +6,7 @@ fn set(items: &[usize]) -> Set {
 }
 
 fn space() -> Space {
-    Space::new(vec![
+    Space::new(&[
         vec![set(&[])],
         vec![set(&[0])],
         vec![set(&[0])],
@@ -79,7 +79,7 @@ fn close(got: f64, want: f64) {
 }
 
 fn chain() -> Vec<Set> {
-    Space::new(vec![vec![set(&[])], vec![set(&[0])]])
+    Space::new(&[vec![set(&[])], vec![set(&[0])]])
         .expect("valid")
         .states(10)
         .expect("small")

@@ -94,7 +94,6 @@ fn check(space: &Space, size: usize) {
             }
         }
     }
-    let single = (0..size).all(|item| space.clauses(item).len() == 1);
     for state in &states {
         for target in 0..size {
             let exact = states
@@ -108,10 +107,7 @@ fn check(space: &Space, size: usize) {
                     let reached = state.union(&found);
                     assert!(reached.contains(target) && has(&reached));
                     let exact = exact.expect("a state above contains the target");
-                    assert!(reached.len() - state.len() >= exact);
-                    if single {
-                        assert_eq!(reached.len() - state.len(), exact);
-                    }
+                    assert_eq!(reached.len() - state.len(), exact);
                 }
             }
         }
@@ -142,7 +138,7 @@ fn every_system(size: usize) -> usize {
                 chosen
             })
             .collect();
-        let space = Space::new(clauses).expect("every generated system is valid");
+        let space = Space::new(&clauses).expect("every generated system is valid");
         check(&space, size);
     }
     total
@@ -160,7 +156,7 @@ fn every_rule_system_on_four_items_is_a_learning_space() {
 
 #[test]
 fn example_22_of_the_survey() {
-    let space = Space::new(vec![
+    let space = Space::new(&[
         vec![set(&[])],
         vec![set(&[])],
         vec![set(&[0, 1]), set(&[1, 3])],
@@ -196,7 +192,7 @@ fn strings(space: &Space, done: &Set, goal: usize) -> usize {
 
 #[test]
 fn example_16_is_not_reachable_one_item_at_a_time() {
-    let space = Space::new(vec![
+    let space = Space::new(&[
         vec![set(&[])],
         vec![set(&[3]), set(&[0, 2]), set(&[2, 4])],
         vec![set(&[0, 1]), set(&[1, 4])],
@@ -209,16 +205,12 @@ fn example_16_is_not_reachable_one_item_at_a_time() {
 
 #[test]
 fn levels_and_errors() {
-    let space = Space::new(vec![
-        vec![set(&[])],
-        vec![set(&[0])],
-        vec![set(&[1]), set(&[0])],
-    ])
-    .expect("valid");
+    let space =
+        Space::new(&[vec![set(&[])], vec![set(&[0])], vec![set(&[1]), set(&[0])]]).expect("valid");
     assert_eq!(space.levels(), vec![Some(0), Some(1), Some(1)]);
-    assert!(Space::new(vec![vec![]]).is_err());
-    assert!(Space::new(vec![vec![set(&[0])]]).is_err());
-    assert!(Space::new(vec![vec![set(&[3])]]).is_err());
+    assert!(Space::new(&[vec![]]).is_err());
+    assert!(Space::new(&[vec![set(&[0])]]).is_err());
+    assert!(Space::new(&[vec![set(&[3])]]).is_err());
 }
 
 #[test]

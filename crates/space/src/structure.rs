@@ -31,16 +31,42 @@ pub(crate) fn unions(items: &Set, atoms: &[Vec<Set>], allow: impl Fn(&Set) -> bo
     partial
 }
 
-fn with(set: &Set, item: usize) -> Set {
+pub(crate) fn with(set: &Set, item: usize) -> Set {
     let mut more = set.clone();
     more.insert(item);
     more
 }
 
-fn without(set: &Set, item: usize) -> Set {
+pub(crate) fn without(set: &Set, item: usize) -> Set {
     let mut rest = set.clone();
     rest.remove(item);
     rest
+}
+
+pub(crate) fn generated(atoms: &[Vec<Set>], item: usize, clause: &Set) -> Vec<Set> {
+    unions(clause, atoms, |atom| !atom.contains(item))
+        .into_iter()
+        .map(|union| with(&union, item))
+        .collect()
+}
+
+pub(crate) fn atoms_of(rules: &[Vec<Set>]) -> Vec<Vec<Set>> {
+    let mut atoms: Vec<Vec<Set>> = vec![Vec::new(); rules.len()];
+    let mut moved = true;
+    while moved {
+        moved = false;
+        for (item, options) in rules.iter().enumerate() {
+            for clause in options {
+                for atom in generated(&atoms, item, clause) {
+                    moved |= keep_minimal(&mut atoms[item], atom);
+                }
+            }
+        }
+    }
+    for list in &mut atoms {
+        list.sort();
+    }
+    atoms
 }
 
 impl Space {
@@ -50,54 +76,23 @@ impl Space {
     }
 
     #[must_use]
-    pub fn atoms(&self) -> Vec<Vec<Set>> {
-        let mut atoms: Vec<Vec<Set>> = vec![Vec::new(); self.len()];
-        let mut moved = true;
-        while moved {
-            moved = false;
-            for item in 0..self.len() {
-                for clause in &self.clauses[item] {
-                    for union in unions(clause, &atoms, |atom| !atom.contains(item)) {
-                        moved |= keep_minimal(&mut atoms[item], with(&union, item));
-                    }
-                }
-            }
-        }
-        for list in &mut atoms {
-            list.sort();
-        }
-        atoms
-    }
-
-    #[must_use]
-    pub fn canonical(&self) -> Self {
-        let clauses = self
-            .atoms()
-            .into_iter()
-            .enumerate()
-            .map(|(item, list)| list.iter().map(|atom| without(atom, item)).collect())
-            .collect();
-        Self::trusted(clauses)
-    }
-
-    #[must_use]
     pub fn projection(&self, kept: &Set) -> Self {
-        let clauses = self
-            .atoms()
-            .into_iter()
+        let atoms = self
+            .atoms
+            .iter()
             .enumerate()
             .map(|(item, list)| {
                 let mut traces = Vec::new();
                 if kept.contains(item) {
-                    for atom in &list {
-                        keep_minimal(&mut traces, without(&atom.intersection(kept), item));
+                    for atom in list {
+                        keep_minimal(&mut traces, atom.intersection(kept));
                     }
                 }
                 traces.sort();
                 traces
             })
             .collect();
-        Self::trusted(clauses)
+        Self::from_atoms(atoms)
     }
 
     #[must_use]
@@ -108,20 +103,11 @@ impl Space {
 
     #[must_use]
     pub fn child(&self, kept: &Set, trace: &Set) -> Option<Child<'_>> {
-        self.child_with(&self.atoms(), kept, trace)
-    }
-
-    pub(crate) fn child_with(
-        &self,
-        atoms: &[Vec<Set>],
-        kept: &Set,
-        trace: &Set,
-    ) -> Option<Child<'_>> {
         let kept = kept.intersection(&self.domain());
         if !trace.is_subset(&kept) {
             return None;
         }
-        let bottoms = unions(trace, atoms, |atom| {
+        let bottoms = unions(trace, &self.atoms, |atom| {
             atom.intersection(&kept).is_subset(trace)
         });
         let base = bottoms
@@ -139,10 +125,9 @@ impl Space {
 
     #[must_use]
     pub fn yielding(&self, kept: &Set, limit: usize) -> Option<bool> {
-        let atoms = self.atoms();
         let traces = self.projection(kept).states(limit)?;
         Some(traces.iter().all(|trace| {
-            self.child_with(&atoms, kept, trace).is_some_and(|child| {
+            self.child(kept, trace).is_some_and(|child| {
                 child
                     .bottoms()
                     .iter()

@@ -176,10 +176,10 @@ fn is_well_graded_and_union_stable(family: &[Mask]) -> bool {
 
 fn space_of(clauses: &[Vec<Mask>]) -> Space {
     Space::new(
-        clauses
+        &clauses
             .iter()
             .map(|options| options.iter().map(|&mask| to_set(mask)).collect())
-            .collect(),
+            .collect::<Vec<Vec<Set>>>(),
     )
     .expect("valid")
 }
@@ -202,7 +202,8 @@ fn audit(clauses: &[Vec<Mask>], kept_sets: &[Mask]) {
 
 fn audit_canonical(clauses: &[Vec<Mask>], truth: &Truth, space: &Space) {
     let size = truth.size;
-    for (item, atoms) in space.atoms().iter().enumerate() {
+    for item in 0..size {
+        let atoms = space.atoms(item);
         assert_eq!(masks(atoms), truth.atoms(item), "atoms at {item}");
         for atom in atoms {
             let mask = to_mask(atom);
@@ -213,10 +214,8 @@ fn audit_canonical(clauses: &[Vec<Mask>], truth: &Truth, space: &Space) {
         }
     }
 
-    let canonical = space.canonical();
-    assert_eq!(clause_masks(&canonical), truth.canonical());
-    assert_eq!(canonical.canonical(), canonical);
-    assert_eq!(Truth::of(&clause_masks(&canonical)).states, truth.states);
+    assert_eq!(clause_masks(space), truth.canonical());
+    assert_eq!(Truth::of(&clause_masks(space)).states, truth.states);
     let mut shuffled: Vec<Vec<Mask>> = clauses
         .iter()
         .map(|list| list.iter().rev().copied().collect())
@@ -224,15 +223,60 @@ fn audit_canonical(clauses: &[Vec<Mask>], truth: &Truth, space: &Space) {
     for list in &mut shuffled {
         list.extend(list.clone());
     }
-    assert_eq!(space_of(&shuffled).canonical(), canonical);
+    assert_eq!(space_of(&shuffled), *space);
     let unreachable: Vec<Finding> = (0..size)
         .filter(|&item| truth.states.iter().all(|state| state >> item & 1 == 0))
         .map(|item| Finding::NoClause { item })
         .collect();
-    let canonical_clauses: Vec<Vec<Set>> = (0..size)
-        .map(|item| canonical.clauses(item).to_vec())
-        .collect();
+    let canonical_clauses: Vec<Vec<Set>> =
+        (0..size).map(|item| space.clauses(item).to_vec()).collect();
     assert_eq!(check(&canonical_clauses), unreachable);
+    if unreachable.is_empty() {
+        assert_eq!(Space::new(&canonical_clauses).expect("valid"), *space);
+    }
+    assert_eq!(space.levels(), authored_levels(clauses));
+    for &state in &truth.states {
+        for target in 0..size {
+            let exact = truth
+                .states
+                .iter()
+                .filter(|&&other| other >> target & 1 == 1 && is_subset(state, other))
+                .map(|other| (other & !state).count_ones())
+                .min();
+            let found = space.gap(&to_set(state), target).map(|gap| {
+                assert!(truth.has(state | to_mask(&gap)));
+                gap.len()
+            });
+            assert_eq!(found, exact.map(|count| count as usize));
+        }
+    }
+}
+
+fn authored_levels(clauses: &[Vec<Mask>]) -> Vec<Option<usize>> {
+    let mut levels: Vec<Option<usize>> = vec![None; clauses.len()];
+    let mut moved = true;
+    while moved {
+        moved = false;
+        for (item, options) in clauses.iter().enumerate() {
+            let best = options
+                .iter()
+                .filter_map(|&clause| {
+                    (0..clauses.len())
+                        .filter(|need| clause >> need & 1 == 1)
+                        .map(|need| levels[need])
+                        .collect::<Option<Vec<usize>>>()
+                        .map(|found| found.into_iter().max().map_or(0, |top| top + 1))
+                })
+                .min();
+            if let Some(level) = best
+                && levels[item].is_none_or(|old| level < old)
+            {
+                levels[item] = Some(level);
+                moved = true;
+            }
+        }
+    }
+    levels
 }
 
 fn audit_fringes(truth: &Truth, space: &Space) {
@@ -329,38 +373,55 @@ fn audit_check(clauses: &[Vec<Mask>]) {
             expected.push(Finding::Unreachable { item });
         }
     }
+    let mut kept_rules: Vec<Vec<Mask>> = vec![Vec::new(); size];
     for (item, options) in clauses.iter().enumerate() {
-        for (at, &clause) in options.iter().enumerate() {
-            if let Some(within) = (0..options.len()).find(|&other| {
-                other != at
-                    && is_subset(options[other], clause)
-                    && (options[other] != clause || other < at)
-            }) {
-                expected.push(Finding::Redundant {
-                    item,
-                    clause: at,
-                    within,
-                });
-            }
-            let first = |pick: &dyn Fn(usize) -> bool| {
-                (0..size).find(|&need| clause >> need & 1 == 1 && pick(need))
-            };
-            if let Some(need) = first(&|need| reach >> need & 1 == 0) {
-                expected.push(Finding::Dead {
-                    item,
-                    clause: at,
-                    need,
-                });
-            } else if let Some(need) = first(&|need| {
-                !clauses[need]
+        let atoms = truth.atoms(item);
+        let fired: Vec<Vec<Mask>> = options
+            .iter()
+            .map(|&clause| {
+                let above: Vec<Mask> = truth
+                    .states
                     .iter()
-                    .any(|&support| is_subset(support, clause))
+                    .copied()
+                    .filter(|&state| is_subset(clause, state) && state >> item & 1 == 0)
+                    .map(|state| state | 1 << item)
+                    .collect();
+                minimal(&above)
+            })
+            .collect();
+        let real: Vec<Vec<Mask>> = fired
+            .iter()
+            .map(|list| {
+                list.iter()
+                    .copied()
+                    .filter(|atom| atoms.contains(atom))
+                    .collect()
+            })
+            .collect();
+        let mut active: Vec<usize> = (0..options.len()).collect();
+        for (at, &clause) in options.iter().enumerate() {
+            if fired[at].is_empty() {
+                expected.push(Finding::Dead { item, clause: at });
+                active.retain(|&other| other != at);
+            } else if real[at].iter().all(|atom| {
+                active
+                    .iter()
+                    .any(|&other| other != at && real[other].contains(atom))
             }) {
-                expected.push(Finding::Unsupported {
+                expected.push(Finding::Covered { item, clause: at });
+                active.retain(|&other| other != at);
+            } else if real[at] != [clause | 1 << item] {
+                expected.push(Finding::Expanded {
                     item,
                     clause: at,
-                    need,
+                    into: real[at]
+                        .iter()
+                        .map(|&atom| to_set(atom & !(1 << item)))
+                        .collect(),
                 });
+                kept_rules[item].extend(real[at].iter().map(|&atom| atom & !(1 << item)));
+            } else {
+                kept_rules[item].push(clause);
             }
         }
     }
@@ -372,6 +433,11 @@ fn audit_check(clauses: &[Vec<Mask>]) {
     found.sort();
     expected.sort();
     assert_eq!(found, expected);
+    assert_eq!(
+        Truth::of(&kept_rules).states,
+        truth.states,
+        "dropping and rewriting keeps the structure"
+    );
 }
 
 fn subsets_of(pool: Mask) -> Vec<Mask> {
@@ -452,7 +518,7 @@ fn every_rule_system_on_three_items_with_redundant_clauses() {
     let total = every_system(3, false, |clauses| {
         audit(clauses, &all);
         audit_check(clauses);
-        let canonical = space_of(clauses).canonical();
+        let canonical = space_of(clauses);
         let states = Truth::of(clauses).states;
         let kept = groups.entry(states).or_insert_with(|| canonical.clone());
         assert_eq!(*kept, canonical, "one canonical form per structure");
@@ -470,7 +536,7 @@ fn every_antichain_rule_system_on_four_items() {
     let total = every_system(4, true, |clauses| {
         audit(clauses, &all);
         audit_check(clauses);
-        let canonical = clause_masks(&space_of(clauses).canonical());
+        let canonical = clause_masks(&space_of(clauses));
         let kept = groups
             .entry(Truth::of(clauses).states)
             .or_insert_with(|| canonical.clone());
@@ -518,62 +584,45 @@ fn findings_carry_their_level() {
         vec![set(&[1])],
         vec![set(&[4])],
         vec![set(&[0])],
+        vec![set(&[0]), set(&[0, 4])],
+        vec![set(&[0]), set(&[0])],
     ]);
+    let expanded = Finding::Expanded {
+        item: 3,
+        clause: 0,
+        into: vec![set(&[0, 4])],
+    };
     assert_eq!(
         found,
         vec![
+            Finding::Dead { item: 0, clause: 1 },
             Finding::Unreachable { item: 1 },
+            Finding::Dead { item: 1, clause: 0 },
             Finding::Unreachable { item: 2 },
-            Finding::Redundant {
-                item: 0,
-                clause: 1,
-                within: 0
-            },
-            Finding::Dead {
-                item: 0,
-                clause: 1,
-                need: 1
-            },
-            Finding::Dead {
-                item: 1,
-                clause: 0,
-                need: 2
-            },
-            Finding::Dead {
-                item: 2,
-                clause: 0,
-                need: 1
-            },
-            Finding::Unsupported {
-                item: 3,
-                clause: 0,
-                need: 4
-            },
+            Finding::Dead { item: 2, clause: 0 },
+            expanded.clone(),
+            Finding::Covered { item: 5, clause: 1 },
+            Finding::Covered { item: 6, clause: 0 },
         ]
     );
-    assert_eq!(Finding::Unreachable { item: 1 }.level(), Level::Warning);
     assert_eq!(
-        Finding::Unsupported {
-            item: 3,
-            clause: 0,
-            need: 4
-        }
-        .level(),
-        Level::Hint
+        Finding::Covered { item: 5, clause: 1 }.level(),
+        Level::Warning
     );
+    assert_eq!(expanded.level(), Level::Hint);
 }
 
 #[test]
 fn example_22_of_the_survey_is_its_own_canonical_form() {
-    let space = Space::new(vec![
+    let space = Space::new(&[
         vec![set(&[])],
         vec![set(&[])],
         vec![set(&[0, 1]), set(&[1, 3])],
         vec![set(&[1])],
     ])
     .expect("valid");
-    assert_eq!(space.canonical(), space);
     let clauses: Vec<Vec<Set>> = (0..4).map(|item| space.clauses(item).to_vec()).collect();
+    assert_eq!(clauses[2], vec![set(&[0, 1]), set(&[1, 3])]);
     assert_eq!(check(&clauses), Vec::new());
     assert_eq!(
         space.from_fringes(&set(&[0, 3]), &set(&[2])),
@@ -616,7 +665,7 @@ fn example_16_of_the_survey_is_not_a_learning_space() {
 
 #[test]
 fn example_29_of_the_survey() {
-    let space = Space::new(vec![
+    let space = Space::new(&[
         vec![set(&[])],
         vec![set(&[])],
         vec![set(&[0, 3])],
@@ -660,7 +709,7 @@ fn example_29_of_the_survey() {
 
 #[test]
 fn example_30_of_the_survey_has_a_child_without_the_empty_set() {
-    let space = Space::new(vec![
+    let space = Space::new(&[
         vec![set(&[1, 2]), set(&[1, 3])],
         vec![set(&[])],
         vec![set(&[1])],
@@ -726,10 +775,10 @@ fn a_large_structure_is_answered_from_its_rules() {
             }
         })
         .collect();
-    let space = Space::new(clauses.clone()).expect("valid");
+    let space = Space::new(&clauses).expect("valid");
     assert_eq!(space.states(10_000), None);
     assert_eq!(check(&clauses), Vec::new());
-    let canonical = space.canonical();
+    let canonical = &space;
     for (item, options) in clauses.iter().enumerate() {
         let mut sorted = options.clone();
         sorted.sort();
