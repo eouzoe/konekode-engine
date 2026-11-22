@@ -5,6 +5,10 @@ use regex::{Captures, Regex};
 
 use crate::say::{Missing, Text, say};
 
+#[expect(
+    clippy::expect_used,
+    reason = "the pattern is a literal that the tests compile"
+)]
 static HEADER: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r"main\.cpp:(?P<line>[0-9]+):[0-9]+: (?:fatal )?error: (?P<text>[^\n\r\x{2028}\x{2029}]+)",
@@ -12,6 +16,10 @@ static HEADER: LazyLock<Regex> = LazyLock::new(|| {
     .expect("the header pattern is valid")
 });
 
+#[expect(
+    clippy::expect_used,
+    reason = "the pattern is a literal that the tests compile"
+)]
 static ANOTHER: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r"^(?:\S[^\n\r\x{2028}\x{2029}]*:[0-9]+:[0-9]+: (?:fatal error|error|warning|note): |fatal error: |[0-9]+ (?:error|warning)s? )",
@@ -60,6 +68,10 @@ const RULES: [(&str, &str, Shape); 10] = [
     (r"^expected '\)'", "explain.paren", Shape::Line),
 ];
 
+#[expect(
+    clippy::expect_used,
+    reason = "the patterns are literals that the tests compile"
+)]
 static COMPILED: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     RULES
         .iter()
@@ -92,7 +104,7 @@ fn tell(
     key: &str,
     shape: Shape,
     line: &str,
-    found: &Captures,
+    found: &Captures<'_>,
 ) -> Result<String, Missing> {
     let name = group(found, "name");
     match shape {
@@ -132,7 +144,7 @@ fn first_block(message: &str) -> String {
     let from = lines
         .iter()
         .position(|line| HEADER.is_match(line))
-        .unwrap_or(lines.len().saturating_sub(1));
+        .unwrap_or_else(|| lines.len().saturating_sub(1));
     let tail = lines.get(from..).unwrap_or(&[]);
     let (head, rest) = tail
         .split_first()

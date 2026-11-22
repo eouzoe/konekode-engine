@@ -9,7 +9,7 @@ pub struct Engine {
 
 impl Engine {
     #[must_use]
-    pub fn new(items: Vec<Item>) -> Self {
+    pub const fn new(items: Vec<Item>) -> Self {
         Self { items }
     }
 

@@ -32,7 +32,7 @@ fn events(path: &str) -> Result<Vec<Event>, String> {
     Ok(read_events(list))
 }
 
-fn encode(value: &impl serde::Serialize) -> Result<String, String> {
+fn encode(value: &impl Serialize) -> Result<String, String> {
     serde_json::to_string(value).map_err(|error| error.to_string())
 }
 

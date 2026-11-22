@@ -1,3 +1,8 @@
+#![expect(
+    clippy::expect_used,
+    reason = "a test stops at the first broken assumption"
+)]
+
 use std::collections::BTreeMap;
 
 use konekode_space::{Finding, Level, Set, Space, check};
@@ -16,7 +21,11 @@ fn to_mask(set: &Set) -> Mask {
     set.iter().map(|item| 1 << item).sum()
 }
 
-fn is_subset(small: Mask, big: Mask) -> bool {
+fn slot(mask: Mask) -> usize {
+    usize::try_from(mask).expect("small")
+}
+
+const fn is_subset(small: Mask, big: Mask) -> bool {
     small & !big == 0
 }
 
@@ -51,20 +60,18 @@ impl Truth {
         let size = clauses.len();
         let mut reach = vec![false; 1 << size];
         reach[0] = true;
-        for mask in 1..1_usize << size {
-            let mask = Mask::try_from(mask).expect("small");
-            reach[mask as usize] = (0..size).any(|item| {
+        for index in 1..1_usize << size {
+            let mask = Mask::try_from(index).expect("small");
+            reach[index] = (0..size).any(|item| {
                 let before = mask & !(1 << item);
                 mask >> item & 1 == 1
-                    && reach[before as usize]
+                    && reach[slot(before)]
                     && clauses[item]
                         .iter()
                         .any(|&clause| is_subset(clause, before))
             });
         }
-        let states = (0..1 << size)
-            .filter(|&mask| reach[mask as usize])
-            .collect();
+        let states = (0..1 << size).filter(|&mask| reach[slot(mask)]).collect();
         Self { size, states }
     }
 
@@ -247,7 +254,7 @@ fn audit_canonical(clauses: &[Vec<Mask>], truth: &Truth, space: &Space) {
                 assert!(truth.has(state | to_mask(&gap)));
                 gap.len()
             });
-            assert_eq!(found, exact.map(|count| count as usize));
+            assert_eq!(found, exact.map(slot));
         }
     }
 }
@@ -344,7 +351,7 @@ fn audit_projection(truth: &Truth, space: &Space, kept: Mask) {
             );
         }
         if child != [0] {
-            let mut plus = child.clone();
+            let mut plus = child;
             if !plus.contains(&0) {
                 plus.push(0);
             }
@@ -482,7 +489,7 @@ fn every_system(size: usize, antichains: bool, mut visit: impl FnMut(&[Vec<Mask>
 struct Random(u64);
 
 impl Random {
-    fn next(&mut self) -> u64 {
+    const fn next(&mut self) -> u64 {
         self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
         let mut value = self.0;
         value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
@@ -491,7 +498,7 @@ impl Random {
     }
 
     fn below(&mut self, bound: usize) -> usize {
-        usize::try_from(self.next() % bound as u64).expect("small")
+        usize::try_from(self.next() % u64::try_from(bound).expect("small")).expect("small")
     }
 
     fn system(&mut self, size: usize) -> Vec<Vec<Mask>> {

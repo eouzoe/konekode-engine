@@ -190,6 +190,6 @@ pub fn apply(command: Command, buffer: &Buffer) -> Option<Buffer> {
 }
 
 #[must_use]
-pub fn command_keys() -> [&'static str; 9] {
+pub const fn command_keys() -> [&'static str; 9] {
     ["$", "0", "G", "O", "i", "j", "k", "o", "x"]
 }

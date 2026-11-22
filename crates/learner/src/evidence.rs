@@ -31,7 +31,7 @@ pub struct Tally {
 
 impl Tally {
     #[must_use]
-    pub fn standing(&self) -> Standing {
+    pub const fn standing(&self) -> Standing {
         if self.completed > 0 {
             return Standing::Done;
         }
@@ -100,7 +100,7 @@ impl Evidence {
     }
 
     #[must_use]
-    pub fn count(&self) -> Count {
+    pub const fn count(&self) -> Count {
         self.count
     }
 

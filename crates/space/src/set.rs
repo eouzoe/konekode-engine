@@ -39,12 +39,12 @@ impl Set {
     pub fn len(&self) -> usize {
         self.words
             .iter()
-            .map(|word| word.count_ones() as usize)
+            .map(|word| usize::try_from(word.count_ones()).unwrap_or(BITS))
             .sum()
     }
 
     #[must_use]
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.words.is_empty()
     }
 

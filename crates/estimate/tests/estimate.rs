@@ -1,3 +1,8 @@
+#![expect(
+    clippy::expect_used,
+    reason = "a test stops at the first broken assumption"
+)]
+
 use konekode_estimate::{Needs, Verdict, careless, estimate};
 use konekode_learner::{Observation, Tally};
 

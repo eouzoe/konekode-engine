@@ -1,6 +1,6 @@
 use crate::{Child, Set, Space};
 
-pub(crate) fn keep_minimal(list: &mut Vec<Set>, candidate: Set) -> bool {
+pub fn keep_minimal(list: &mut Vec<Set>, candidate: Set) -> bool {
     if list.iter().any(|kept| kept.is_subset(&candidate)) {
         return false;
     }
@@ -9,7 +9,7 @@ pub(crate) fn keep_minimal(list: &mut Vec<Set>, candidate: Set) -> bool {
     true
 }
 
-pub(crate) fn unions(items: &Set, atoms: &[Vec<Set>], allow: impl Fn(&Set) -> bool) -> Vec<Set> {
+pub fn unions(items: &Set, atoms: &[Vec<Set>], allow: impl Fn(&Set) -> bool) -> Vec<Set> {
     let mut partial = vec![Set::new()];
     for need in items.iter() {
         let mut next = Vec::new();
@@ -31,26 +31,26 @@ pub(crate) fn unions(items: &Set, atoms: &[Vec<Set>], allow: impl Fn(&Set) -> bo
     partial
 }
 
-pub(crate) fn with(set: &Set, item: usize) -> Set {
+pub fn with(set: &Set, item: usize) -> Set {
     let mut more = set.clone();
     more.insert(item);
     more
 }
 
-pub(crate) fn without(set: &Set, item: usize) -> Set {
+pub fn without(set: &Set, item: usize) -> Set {
     let mut rest = set.clone();
     rest.remove(item);
     rest
 }
 
-pub(crate) fn generated(atoms: &[Vec<Set>], item: usize, clause: &Set) -> Vec<Set> {
+pub fn generated(atoms: &[Vec<Set>], item: usize, clause: &Set) -> Vec<Set> {
     unions(clause, atoms, |atom| !atom.contains(item))
         .into_iter()
         .map(|union| with(&union, item))
         .collect()
 }
 
-pub(crate) fn atoms_of(rules: &[Vec<Set>]) -> Vec<Vec<Set>> {
+pub fn atoms_of(rules: &[Vec<Set>]) -> Vec<Vec<Set>> {
     let mut atoms: Vec<Vec<Set>> = vec![Vec::new(); rules.len()];
     let mut moved = true;
     while moved {

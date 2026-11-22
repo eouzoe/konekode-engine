@@ -101,16 +101,16 @@ pub fn known_keys() -> BTreeSet<String> {
 
 #[must_use]
 pub fn step(buffer: &Buffer, key: &str, rules: &Rules) -> Outcome {
-    match advance(buffer, key, rules) {
-        Some(next) => Outcome {
-            buffer: next,
-            refused: false,
-        },
-        None => Outcome {
+    advance(buffer, key, rules).map_or_else(
+        || Outcome {
             buffer: cleared(buffer),
             refused: true,
         },
-    }
+        |next| Outcome {
+            buffer: next,
+            refused: false,
+        },
+    )
 }
 
 #[must_use]

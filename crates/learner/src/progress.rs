@@ -49,7 +49,7 @@ impl Progress {
     }
 
     #[must_use]
-    pub fn units(&self) -> &BTreeMap<String, UnitState> {
+    pub const fn units(&self) -> &BTreeMap<String, UnitState> {
         &self.units
     }
 

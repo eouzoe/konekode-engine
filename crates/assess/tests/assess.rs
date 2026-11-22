@@ -1,3 +1,8 @@
+#![expect(
+    clippy::expect_used,
+    reason = "a test stops at the first broken assumption"
+)]
+
 use konekode_assess::{Belief, Error, Noise, Response};
 use konekode_space::{Set, Space};
 
@@ -21,7 +26,7 @@ fn open_ended() -> Noise {
     Noise::new(0.1, 0.02).expect("informative")
 }
 
-fn answer(item: usize, correct: bool) -> Response {
+const fn answer(item: usize, correct: bool) -> Response {
     Response { item, correct }
 }
 

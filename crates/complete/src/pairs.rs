@@ -29,11 +29,11 @@ fn line_around(text: &str, index: i64) -> &str {
     )
 }
 
-fn is_space(byte: u8) -> bool {
+const fn is_space(byte: u8) -> bool {
     matches!(byte, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
 }
 
-fn is_word(byte: u8) -> bool {
+const fn is_word(byte: u8) -> bool {
     byte.is_ascii_alphanumeric() || byte == b'_'
 }
 
@@ -51,7 +51,7 @@ pub fn is_include_line(line: &str) -> bool {
     after.starts_with(word) && after.get(word.len()).is_none_or(|next| !is_word(*next))
 }
 
-fn line_closer(scan: &Scan, index: i64) -> Option<i64> {
+fn line_closer(scan: &Scan<'_>, index: i64) -> Option<i64> {
     let char = char_at(scan.text, index);
     let pair = scan
         .pairs
@@ -67,7 +67,7 @@ fn line_closer(scan: &Scan, index: i64) -> Option<i64> {
     Some(closer)
 }
 
-fn open_bracket(scan: &mut Scan, index: i64) -> bool {
+fn open_bracket(scan: &mut Scan<'_>, index: i64) -> bool {
     let char = char_at(scan.text, index);
     let Some(pair) = scan
         .pairs
@@ -83,7 +83,7 @@ fn open_bracket(scan: &mut Scan, index: i64) -> bool {
     true
 }
 
-fn close_bracket(scan: &mut Scan, index: i64) -> bool {
+fn close_bracket(scan: &mut Scan<'_>, index: i64) -> bool {
     let Some(last) = scan.open.last() else {
         return false;
     };
@@ -96,7 +96,7 @@ fn close_bracket(scan: &mut Scan, index: i64) -> bool {
     true
 }
 
-fn visit(scan: &mut Scan, index: i64) {
+fn visit(scan: &mut Scan<'_>, index: i64) {
     if open_bracket(scan, index) || close_bracket(scan, index) {
         return;
     }

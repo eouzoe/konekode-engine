@@ -51,7 +51,7 @@ impl Finding {
     }
 }
 
-pub(crate) fn errors(rules: &[Vec<Set>]) -> Vec<Finding> {
+pub fn errors(rules: &[Vec<Set>]) -> Vec<Finding> {
     let size = rules.len();
     let mut found = Vec::new();
     for (item, options) in rules.iter().enumerate() {

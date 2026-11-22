@@ -57,7 +57,7 @@ pub fn expected_now(session: &Session) -> Option<Expected> {
 }
 
 #[must_use]
-pub fn is_guided(session: &Session) -> bool {
+pub const fn is_guided(session: &Session) -> bool {
     !session.path.is_empty()
 }
 

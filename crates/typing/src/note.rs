@@ -14,7 +14,7 @@ pub struct Attempt {
     pub verdict: String,
 }
 
-fn cause_for(feedback: Feedback) -> &'static str {
+const fn cause_for(feedback: Feedback) -> &'static str {
     match feedback {
         Feedback::NeedInsert => "need-insert",
         Feedback::NoDelete => "no-delete",
@@ -54,6 +54,10 @@ fn left_early(before: &Drill, after: &Drill) -> bool {
     before.mode == Mode::Insert && after.mode == Mode::Normal && !is_typed(before)
 }
 
+#[expect(
+    clippy::suspicious_operation_groupings,
+    reason = "the step also moves when the line was typed before this key and is finished after it"
+)]
 fn moved(before: &Drill, after: &Drill) -> bool {
     step_at(after) != step_at(before) || (is_typed(before) && is_done(after))
 }

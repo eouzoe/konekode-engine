@@ -14,7 +14,7 @@ pub fn units(text: &str) -> i64 {
 }
 
 #[must_use]
-pub fn is_ascii_text(text: &str) -> bool {
+pub const fn is_ascii_text(text: &str) -> bool {
     text.is_ascii()
 }
 
@@ -85,7 +85,7 @@ pub fn count(text: &str, needle: &str) -> i64 {
 }
 
 #[must_use]
-pub fn is_js_space(char: char) -> bool {
+pub const fn is_js_space(char: char) -> bool {
     (char.is_whitespace() && char != '\u{85}') || char == '\u{feff}'
 }
 

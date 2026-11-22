@@ -35,7 +35,7 @@ pub enum Hint {
 }
 
 impl Hint {
-    fn line(&self) -> Option<i64> {
+    const fn line(&self) -> Option<i64> {
         match self {
             Self::Drop { line } | Self::Insert { line, .. } | Self::Remove { line, .. } => {
                 Some(*line)
@@ -268,7 +268,7 @@ fn lines_still(hints: Vec<Hint>) -> Vec<Hint> {
         .iter()
         .filter_map(|hint| match hint {
             Hint::Drop { line } => Some(*line),
-            _ => None,
+            Hint::Insert { .. } | Hint::NewLine { .. } | Hint::Remove { .. } => None,
         })
         .collect();
     hints

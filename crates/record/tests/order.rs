@@ -48,7 +48,7 @@ fn domain() -> Vec<Event> {
     all
 }
 
-fn key(event: &Event) -> (i64, &[u8], i64, &[u8]) {
+const fn key(event: &Event) -> (i64, &[u8], i64, &[u8]) {
     (
         event.at,
         event.session.as_bytes(),
@@ -145,7 +145,7 @@ fn the_cycle_the_old_order_made_is_one_line_now() {
 fn copies_count_as_duplicates_and_differences_as_conflicts() {
     let same = event(1, "a", 1, "x", 0);
     let other = event(1, "a", 1, "x", 1);
-    let reading = order(&[same.clone(), same.clone(), other]);
+    let reading = order(&[same.clone(), same, other]);
     assert_eq!(reading.duplicates, 2);
     assert_eq!(reading.conflicts, ["x"]);
     assert_eq!(reading.events.len(), 1);

@@ -418,6 +418,6 @@ pub fn reply(ui: &mut Ui, line: &str) -> Value {
 }
 
 #[must_use]
-pub fn new_ui() -> Ui {
+pub const fn new_ui() -> Ui {
     Ui::new()
 }

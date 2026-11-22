@@ -7,3 +7,4 @@
 /fuzz/artifacts/
 /fuzz/coverage/
 /mutants.out*/
+/.tools/

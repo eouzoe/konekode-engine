@@ -4,6 +4,7 @@ use serde_json::Value;
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
 #[wasm_bindgen]
+#[derive(Debug)]
 pub struct Engine {
     inner: konekode_flow::Engine,
 }
@@ -11,7 +12,7 @@ pub struct Engine {
 #[wasm_bindgen]
 impl Engine {
     #[wasm_bindgen(constructor)]
-    pub fn new(content: &str, events: &str) -> Result<Engine, JsError> {
+    pub fn new(content: &str, events: &str) -> Result<Self, JsError> {
         let content: Content = serde_json::from_str(content)?;
         let values: Vec<Value> = serde_json::from_str(events)?;
         Ok(Self {
@@ -30,7 +31,11 @@ impl Engine {
     }
 
     pub fn estimates(&self, now: f64) -> Result<String, JsError> {
-        #[allow(clippy::cast_possible_truncation)]
+        #[expect(
+            clippy::cast_possible_truncation,
+            clippy::as_conversions,
+            reason = "JavaScript hands the time as a double of whole milliseconds"
+        )]
         let now = now as i64;
         Ok(serde_json::to_string(&self.inner.estimates(now))?)
     }

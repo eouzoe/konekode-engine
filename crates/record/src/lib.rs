@@ -90,7 +90,7 @@ fn data(object: &Map<String, Value>) -> Option<Data> {
             Value::Bool(flag) => DataValue::Flag(*flag),
             Value::Number(number) => DataValue::Number(plain_zero(number.as_f64()?)),
             Value::String(text) => DataValue::Text(text.clone()),
-            _ => return None,
+            Value::Null | Value::Array(_) | Value::Object(_) => return None,
         };
         out.insert(key.clone(), item);
     }
@@ -227,7 +227,7 @@ fn by_time(left: &Event, right: &Event) -> Ordering {
         .then_with(|| left.id.as_bytes().cmp(right.id.as_bytes()))
 }
 
-fn value_rank(value: &DataValue) -> u8 {
+const fn value_rank(value: &DataValue) -> u8 {
     match value {
         DataValue::Flag(_) => 0,
         DataValue::Number(_) => 1,

@@ -7,19 +7,19 @@ pub struct SkillMap {
 
 impl SkillMap {
     pub fn new(competencies: Vec<Vec<Set>>) -> Result<Self, Error> {
-        match competencies.iter().position(Vec::is_empty) {
-            Some(item) => Err(Error::NoClause { item }),
-            None => Ok(Self { competencies }),
+        if let Some(item) = competencies.iter().position(Vec::is_empty) {
+            return Err(Error::NoClause { item });
         }
+        Ok(Self { competencies })
     }
 
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.competencies.len()
     }
 
     #[must_use]
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.competencies.is_empty()
     }
 

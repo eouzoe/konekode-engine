@@ -29,11 +29,39 @@ serde_json = "1"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
+unused_qualifications = "warn"
+unused_lifetimes = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+missing_debug_implementations = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"
+as_conversions = "warn"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+exit = "warn"
+float_cmp_const = "warn"
+lossy_float_literal = "warn"
+str_to_string = "warn"
+clone_on_ref_ptr = "warn"
+get_unwrap = "warn"
+if_then_some_else_none = "warn"
+mem_forget = "warn"
+rest_pat_in_fully_bound_structs = "warn"
+unneeded_field_pattern = "warn"
+verbose_file_reads = "warn"
+wildcard_enum_match_arm = "warn"
+allow_attributes = "warn"
+allow_attributes_without_reason = "warn"
 
 [profile.test]
 opt-level = 3

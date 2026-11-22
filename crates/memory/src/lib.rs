@@ -40,7 +40,7 @@ pub struct Memory {
     pub difficulty: f64,
 }
 
-fn grade(pass: bool) -> f64 {
+const fn grade(pass: bool) -> f64 {
     if pass { PASS } else { FAIL }
 }
 
@@ -97,7 +97,11 @@ impl Memory {
 
 #[must_use]
 pub fn days_between(earlier_ms: i64, later_ms: i64) -> f64 {
-    #[allow(clippy::cast_precision_loss)]
+    #[expect(
+        clippy::cast_precision_loss,
+        clippy::as_conversions,
+        reason = "milliseconds stay exact in f64 below 2^53, about 285 thousand years"
+    )]
     let gap = later_ms.saturating_sub(earlier_ms) as f64;
     (gap / DAY_MS).max(0.0)
 }

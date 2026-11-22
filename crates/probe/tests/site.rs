@@ -14,7 +14,7 @@ fn plain(value: &Value) -> Value {
                 .map(|(key, item)| (key.clone(), plain(item)))
                 .collect::<Map<String, Value>>(),
         ),
-        other => other.clone(),
+        other @ (Value::Null | Value::Bool(_) | Value::String(_)) => other.clone(),
     }
 }
 

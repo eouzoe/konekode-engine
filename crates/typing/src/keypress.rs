@@ -46,8 +46,5 @@ pub fn judge(drill: &Drill, input: &KeyInput) -> Next {
     if input.key == "Backspace" || input.key == "Delete" {
         return remind(drill, Feedback::NoDelete);
     }
-    match typed {
-        Some(char) => press(drill, &char),
-        None => Next::Same,
-    }
+    typed.map_or(Next::Same, |char| press(drill, &char))
 }

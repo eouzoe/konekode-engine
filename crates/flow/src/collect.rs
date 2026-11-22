@@ -4,7 +4,7 @@ use konekode_record::{Event, order, read_event};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Row {
     pub actor: String,
     pub body: Value,

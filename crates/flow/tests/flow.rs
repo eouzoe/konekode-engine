@@ -5,7 +5,7 @@ use serde_json::{Value, json};
 struct Dice(u64);
 
 impl Dice {
-    fn below(&mut self, limit: u64) -> u64 {
+    const fn below(&mut self, limit: u64) -> u64 {
         self.0 ^= self.0 << 13;
         self.0 ^= self.0 >> 7;
         self.0 ^= self.0 << 17;
@@ -13,7 +13,8 @@ impl Dice {
     }
 
     fn pick<'a>(&mut self, items: &[&'a str]) -> &'a str {
-        let place = usize::try_from(self.below(items.len() as u64)).unwrap_or(0);
+        let place = usize::try_from(self.below(u64::try_from(items.len()).unwrap_or(u64::MAX)))
+            .unwrap_or(0);
         items[place]
     }
 }
@@ -99,7 +100,8 @@ fn scenario(dice: &mut Dice) -> Vec<Event> {
 fn shuffled(dice: &mut Dice, events: &[Event]) -> Vec<Event> {
     let mut out = events.to_vec();
     for place in (1..out.len()).rev() {
-        let other = usize::try_from(dice.below(place as u64 + 1)).unwrap_or(0);
+        let other =
+            usize::try_from(dice.below(u64::try_from(place).unwrap_or(u64::MAX) + 1)).unwrap_or(0);
         out.swap(place, other);
     }
     out

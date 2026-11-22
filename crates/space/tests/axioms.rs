@@ -1,3 +1,8 @@
+#![expect(
+    clippy::expect_used,
+    reason = "a test stops at the first broken assumption"
+)]
+
 use konekode_space::{Set, SkillMap, Space, project};
 
 fn set(items: &[usize]) -> Set {

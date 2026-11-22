@@ -81,7 +81,7 @@ pub fn careless(observations: &[Observation]) -> f64 {
         .clamp(CARELESS_RANGE.0, CARELESS_RANGE.1)
 }
 
-fn find(parent: &mut [usize], at: usize) -> usize {
+const fn find(parent: &mut [usize], at: usize) -> usize {
     let mut root = at;
     while parent[root] != root {
         root = parent[root];
