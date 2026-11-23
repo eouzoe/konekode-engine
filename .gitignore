@@ -2,6 +2,7 @@
 .devenv*
 .direnv
 /pkg/
+/dist/
 /fuzz/target/
 /fuzz/corpus/
 /fuzz/artifacts/
