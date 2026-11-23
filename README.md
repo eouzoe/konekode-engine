@@ -55,7 +55,7 @@ devenv shell -- just wasm
 - 介面不相容（拿掉或改名一個函式、改了參數或回傳的形狀）就升主版本；只增加升次版本；只修行為升修訂版本。`1.0.0` 以前，主版本的角色由次版本擔任。
 - 發布：改好版本號、推上 `dev` 並等 CI 過，在那一筆打 `v<版本號>` 的標籤並推上去。`Release` 工作流程會重跑整套檢查，用 `just package` 建出 `konekode-engine-<版本號>.tgz`，附上建置來源證明，掛在同名的 Release 上。標籤和版本號對不上時它會拒絕。
 - 用的一方：依賴寫成那個 Release 的檔案網址，鎖檔會記完整性雜湊；`gh attestation verify <檔案> --repo eouzoe/konekode-engine` 驗它是這個倉庫的工作流程建的。
-- `just package` 在本機也能跑，同一份原始碼建兩次的檔案位元組相同。
+- `just package` 在本機也能跑。`just wasm` 把建置時的路徑換成固定的前綴，同一份原始碼不論在哪台機器建，套件檔的位元組都相同，所以可以自己重建來對照 Release 上的檔。
 
 ## 授權
 

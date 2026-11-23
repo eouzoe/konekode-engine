@@ -9,6 +9,9 @@ proofs:
     cd proofs && lake exe cache get && lake build
 
 wasm:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export RUSTFLAGS="--remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}=/cargo --remap-path-prefix={{justfile_directory()}}=/engine"
     cargo build --release --target wasm32-unknown-unknown -p konekode-wasm
     wasm-bindgen --target web --out-dir pkg target/wasm32-unknown-unknown/release/konekode_wasm.wasm
 
