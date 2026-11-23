@@ -57,14 +57,14 @@ checksum = "3bd1574e617a9a6c1f8f8181bd7e841e1f20e4277607ef28945765188d6284d4"
 
 [[package]]
 name = "konekode-assess"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "konekode-space",
 ]
 
 [[package]]
 name = "konekode-cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "konekode-flow",
  "konekode-record",
@@ -74,7 +74,7 @@ dependencies = [
 
 [[package]]
 name = "konekode-complete"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "konekode-text",
  "serde",
@@ -82,7 +82,7 @@ dependencies = [
 
 [[package]]
 name = "konekode-edit"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "konekode-complete",
  "konekode-text",
@@ -91,7 +91,7 @@ dependencies = [
 
 [[package]]
 name = "konekode-estimate"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "konekode-assess",
  "konekode-learner",
@@ -102,7 +102,7 @@ dependencies = [
 
 [[package]]
 name = "konekode-flow"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "konekode-complete",
  "konekode-estimate",
@@ -115,7 +115,7 @@ dependencies = [
 
 [[package]]
 name = "konekode-learner"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "konekode-complete",
  "konekode-edit",
@@ -127,7 +127,7 @@ dependencies = [
 
 [[package]]
 name = "konekode-memory"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "libm",
  "serde",
@@ -135,7 +135,7 @@ dependencies = [
 
 [[package]]
 name = "konekode-probe"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "flate2",
  "konekode-complete",
@@ -151,7 +151,7 @@ dependencies = [
 
 [[package]]
 name = "konekode-record"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -159,7 +159,7 @@ dependencies = [
 
 [[package]]
 name = "konekode-run"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "konekode-text",
  "regex",
@@ -168,15 +168,15 @@ dependencies = [
 
 [[package]]
 name = "konekode-space"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "konekode-text"
-version = "0.1.1"
+version = "0.1.2"
 
 [[package]]
 name = "konekode-typing"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "konekode-text",
  "serde",
@@ -184,14 +184,14 @@ dependencies = [
 
 [[package]]
 name = "konekode-unit"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "konekode-wasm"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "konekode-flow",
  "konekode-learner",
