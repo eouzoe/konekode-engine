@@ -19,4 +19,7 @@ jobs:
         with:
           tool: just
       - run: rustup toolchain install
+      - uses: leanprover/lean-action@ba3fdfe5c4476c925da13bf11a005ddb47e47aee
+        with:
+          lake-package-directory: proofs
       - run: just check
