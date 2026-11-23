@@ -192,7 +192,7 @@ mod proofs {
     }
 
     #[kani::proof]
-    #[kani::unwind(4)]
+    #[kani::unwind(17)]
     fn equal_members_mean_equal_sets() {
         let (left, right) = (any_set(), any_set());
         if left.is_subset(&right) && right.is_subset(&left) {
