@@ -1,7 +1,7 @@
 { pkgs, inputs, ... }:
 let
   rustBin = inputs.rust-overlay.lib.mkRustBin { } pkgs;
-  nightly = rustBin.nightly."2026-09-01".minimal.override {
+  nightly = rustBin.nightly."2026-11-25".minimal.override {
     extensions = [ "llvm-tools-preview" "rust-src" ];
   };
 in
